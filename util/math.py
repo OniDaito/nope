@@ -599,7 +599,7 @@ class TransTen:
         """
         self.x = x
         self.y = y
-        self.z = z 
+        self.z = z
 
 
 class Mask:
@@ -990,6 +990,48 @@ def gen_trans_xy(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
     tm = t_x + t_y + base
+
+    return tm
+
+
+def gen_trans_xyz(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+    """
+    Generate a translation matrix in x, y and z. It's
+    convoluted, just as gen_rot is as we want to keep
+    the ability to use backward() and autograd.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Translation in x, as a shape (1) tensor.
+    y : torch.Tensor
+        Translation in y, as a shape (1) tensor.
+    z : torch.Tensor
+        Translation in y, as a shape (1) tensor.
+
+    Returns
+    -------
+    torch.Tensor
+       A 4x4 ndc-to-screen matrix.
+    """
+    assert x.device == y.device
+
+    x_mask = x.new_tensor(
+        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+
+    y_mask = y.new_tensor(
+        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
+    
+    z_mask = z.new_tensor(
+        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
+
+    base = x.new_tensor([[1, 0, 0, 0], [0, 1, 0, 0],
+                         [0, 0, 1, 0], [0, 0, 0, 1]])
+
+    t_x = x.expand_as(x_mask) * x_mask
+    t_y = y.expand_as(y_mask) * y_mask
+    t_z = z.expand_as(z_mask) * z_mask
+    tm = t_x + t_y + t_z + base
 
     return tm
 

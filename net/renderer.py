@@ -13,7 +13,7 @@ import torch
 import math
 from util.math import (
     gen_mat_from_rod,
-    gen_trans_xy,
+    gen_trans_xyz,
     gen_identity,
     gen_perspective,
     gen_ndc,
@@ -165,7 +165,7 @@ class Splat(object):
 
         """
         self.rot_mat = gen_mat_from_rod(a)
-        self.trans_mat = gen_trans_xy(t.x, t.y)
+        self.trans_mat = gen_trans_xyz(t.x, t.y, tz)
         self.modelview = torch.matmul(self.rot_mat, self.trans_mat)
         o = torch.matmul(self.modelview, points.data)
         return o
@@ -239,7 +239,7 @@ class Splat(object):
 
         # This section causes upto a 20% hit on the GPU perf
         self.rot_mat = gen_mat_from_rod(rot)
-        self.trans_mat = gen_trans_xy(trans.x, trans.y)
+        self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
         self.modelview = torch.matmul(
             torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat
         )
@@ -257,31 +257,19 @@ class Splat(object):
 
         # Expand the mask out so we can cancel out the contribution
         # of some of the points
-        mask = mask.reshape(mask.shape[0], 1, 1)
-        mask = mask.expand(mask.shape[0], ey.shape[1], ey.shape[2])
+        mask = mask.reshape(mask.shape[0], 1, 1, 1)
+        mask = mask.expand(mask.shape[0], ey.shape[1], ey.shape[2],  ey.shape[3])
 
         model = (
             1.0
             / (2.0 * math.pi * sigma ** 3)
             * torch.sum(
-                torch.exp(
+                mask * torch.exp(
                     -((ex - self.xs) ** 2 + (ey - self.ys) ** 2 + (ez - self.zs) ** 2)
                     / (2 * sigma ** 2)
                 ),
                 dim=0,
             )
         )
-
-        """model = (
-            1.0
-            / (2.0 * math.pi * sigma ** 2)
-            * torch.sum(
-                mask
-                * torch.exp(
-                    -((ex - self.xs) ** 2 + (ey - self.ys) ** 2) / (2 * sigma ** 2)
-                ),
-                dim=0,
-            )
-        )"""
 
         return model

@@ -19,9 +19,10 @@ from net.renderer import Splat
 from util.math import TransTen, PointsTen, VecRot
 from util.image import save_image
 
-class Renderer(unittest.TestCase):
-    def test_render(self):
 
+class Renderer(unittest.TestCase):
+
+    def test_render(self):
         use_cuda = False
         device = torch.device("cuda" if use_cuda else "cpu")
         base_points = PointsTen(device=device)
@@ -36,14 +37,14 @@ class Renderer(unittest.TestCase):
         yt = torch.tensor([0.0], dtype=torch.float32)
         zt = torch.tensor([0.0], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(16, 32, 32), device=device)
+        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(16, 32, 64), device=device)
 
         r = VecRot(0, 0, 0).to_ten(device=device)
-        #r.random()
+        r.random()
         t = TransTen(xt, yt, zt)
 
-        result = splat.render(base_points, r, t, mask, sigma=1.8)
-        #self.assertTrue(torch.sum(model) > 300)
+        result = splat.render(base_points, r, t, mask, sigma=1.2)
+        self.assertTrue(torch.sum(result) > 200)
         save_image(torch.sum(result.detach(), dim=0), name="test_renderer_0.jpg")
 
     def test_dropout(self):
@@ -60,15 +61,14 @@ class Renderer(unittest.TestCase):
                 mask.append(0.0)
 
         mask = torch.tensor(mask, device=device)
-        xt = torch.tensor([0.1], dtype=torch.float32)
-        yt = torch.tensor([0.1], dtype=torch.float32)
+        xt = torch.tensor([0.0], dtype=torch.float32)
+        yt = torch.tensor([0.0], dtype=torch.float32)
+        zt = torch.tensor([1.0], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device)
+        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(16, 32, 64), device=device)
         r = VecRot(0, math.radians(90), 0).to_ten(device=device)
-        t = TransTen(xt, yt)
-
+        t = TransTen(xt, yt, zt)
         model = splat.render(base_points, r, t, mask, sigma=1.8)
-
         mask = []
 
         for _ in range(len(base_points)):
@@ -78,7 +78,7 @@ class Renderer(unittest.TestCase):
         model2 = splat.render(base_points, r, t, mask, sigma=1.8)
 
         self.assertTrue(torch.sum(model2) > torch.sum(model))
-        # save_image(model, name="test_renderer_1.jpg")
+        save_image(torch.sum(model, dim=0), name="test_renderer_1.jpg")
 
 
 if __name__ == "__main__":
