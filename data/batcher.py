@@ -44,7 +44,7 @@ class Batcher:
 
     def __next__(self) -> tuple:
         batch = torch.zeros(
-            (self.batch_size, 1, self.isize[0], self.isize[1]),
+            (self.batch_size, 1, self.isize[0], self.isize[1], self.isize[2]),
             dtype=torch.float32,
             device=self.device,
         )
