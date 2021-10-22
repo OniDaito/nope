@@ -142,7 +142,7 @@ class Net(nn.Module):
         
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize * csize * 128, 512)
+        self.fc1 = nn.Linear(csize * csize * 128, 256)
         nx = 3
 
         if self.predict_translate:
