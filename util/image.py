@@ -167,7 +167,6 @@ class NormaliseTorch(object):
         torch.Tensor
             The normalised batch tensor
         """
-        # tfactor = self.factor * (img_batch.shape[2]**2) / 3600  # 60^2 - dora image size
         intensity = torch.sum(img_batch, [2, 3])
         intensity = self.factor / intensity
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1, 1)

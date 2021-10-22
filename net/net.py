@@ -90,16 +90,16 @@ class Net(nn.Module):
         """
         super(Net, self).__init__()
         # Conv layers
-        self.batch1 = nn.BatchNorm2d(16)
-        self.batch2 = nn.BatchNorm2d(32)
-        self.batch2b = nn.BatchNorm2d(32)
-        self.batch3 = nn.BatchNorm2d(64)
-        self.batch3b = nn.BatchNorm2d(64)
-        self.batch4 = nn.BatchNorm2d(128)
-        self.batch4b = nn.BatchNorm2d(128)
-        self.batch5 = nn.BatchNorm2d(256)
-        self.batch5b = nn.BatchNorm2d(256)
-        self.batch6 = nn.BatchNorm2d(256)
+        self.batch1 = nn.BatchNorm3d(8)
+        self.batch2 = nn.BatchNorm3d(16)
+        self.batch2b = nn.BatchNorm3d(16)
+        self.batch3 = nn.BatchNorm3d(32)
+        self.batch3b = nn.BatchNorm3d(32)
+        self.batch4 = nn.BatchNorm3d(64)
+        self.batch4b = nn.BatchNorm3d(64)
+        self.batch5 = nn.BatchNorm3d(128)
+        self.batch5b = nn.BatchNorm3d(128)
+        self.batch6 = nn.BatchNorm3d(128)
 
         # Model the sigma
         self.predict_sigma = predict_sigma
