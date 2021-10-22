@@ -76,7 +76,7 @@ class Splat(object):
         self.ndc = gen_ndc(self.size, device=self.device)
         self.xs = torch.tensor([0], dtype=torch.float32)
         self.ys = torch.tensor([0], dtype=torch.float32)
-        # self.w_mask = torch.tensor([0])
+        self.zs = torch.tensor([0], dtype=torch.float32)
 
         mask = []
         for _ in range(0, 200):
