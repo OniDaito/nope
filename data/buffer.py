@@ -208,7 +208,7 @@ class BufferImage(BaseBuffer):
     def __init__(
         self,
         dataset,
-        image_size=(320, 150, 25),
+        image_size=(25, 150, 320),
         buffer_size=1000,
         device=torch.device("cpu"),
     ):

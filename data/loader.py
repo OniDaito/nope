@@ -309,13 +309,13 @@ class Loader(object):
         mask = Mask(tmask)
 
         tv = []
-        for i in range(5):
-            ts = idx * 5 + i
+        for i in range(6):
+            ts = idx * 6 + i
             tv.append(self.transform_vars[ts])
 
         item = ItemSimulated(
             points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(
-                tv[3], tv[4]), self.sigma
+                tv[3], tv[4], tv[5]), self.sigma
         )
         return item
 
@@ -375,6 +375,7 @@ class Loader(object):
         the moment, just creating the basics first. Internal function."""
         tx = 0
         ty = 0
+        tz = 0
 
         # Ensure an equal spread of data around all the rotation space so
         # we don't miss any particular areas
@@ -386,6 +387,7 @@ class Loader(object):
             if self.translate:
                 tx = ((random.random() * 2.0) - 1.0) * self.max_trans
                 ty = ((random.random() * 2.0) - 1.0) * self.max_trans
+                tz = ((random.random() * 2.0) - 1.0) * self.max_trans
 
             points, dropout_mask = self._create_points_mask()
 
@@ -417,6 +419,7 @@ class Loader(object):
                     self.transform_vars.append(rot_a.z)
                     self.transform_vars.append(tx)
                     self.transform_vars.append(ty)
+                    self.transform_vars.append(tz)
 
                     self.points_chunk = len(new_points)
                     self.masks_chunk = len(dropout_mask)
@@ -435,6 +438,7 @@ class Loader(object):
                 self.transform_vars.append(rot.z)
                 self.transform_vars.append(tx)
                 self.transform_vars.append(ty)
+                self.transform_vars.append(tz)
 
                 self.points_chunk = len(points)
                 self.masks_chunk = len(dropout_mask)
