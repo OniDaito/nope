@@ -142,6 +142,7 @@ class Net(nn.Module):
         
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
+        print("SIZE", csize * csize * 128)
         self.fc1 = nn.Linear(csize * csize * 128, 256)
         nx = 3
 
@@ -150,7 +151,7 @@ class Net(nn.Module):
         if self.predict_sigma:
             nx += 1
 
-        self.fc2 = nn.Linear(512, nx)
+        self.fc2 = nn.Linear(256, nx)
 
         self.max_shift = max_trans
         self.splat = splat
