@@ -46,7 +46,7 @@ else
   fi
   basedir=$1
   datadir=$2
-  baseops="python ../train.py --savedir $basedir --save-interval 100 --train-size 99500 --valid-size 250 --test-size 250 --ceppath $2 --save-stats --epochs 20 --batch-size 20 --log-interval 100 --num-points 302"
+  baseops="python ./train.py --savedir $basedir --save-interval 100 --train-size 99500 --valid-size 250 --test-size 250 --ceppath $2 --save-stats --epochs 20 --batch-size 20 --log-interval 100 --num-points 302"
   echo "Running with default ops: " $baseops
 fi
 

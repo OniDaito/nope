@@ -140,8 +140,8 @@ def test(
             if batch_idx == image_choice:
                 target = torch.squeeze(target_shaped[0])
                 output = torch.squeeze(output[0])
-                S.save_jpg(target, args.savedir, "in_e", epoch, step, batch_idx)
-                S.save_jpg(output, args.savedir, "out_e", epoch, step, batch_idx)
+                S.save_jpg(torch.sum(target, dim=0), args.savedir, "in_e", epoch, step, batch_idx)
+                S.save_jpg(torch.sum(output, dim=0), args.savedir, "out_e", epoch, step, batch_idx)
                 S.save_fits(target, args.savedir, "in_e", epoch, step, batch_idx)
                 S.save_fits(output, args.savedir, "out_e", epoch, step, batch_idx)
 
