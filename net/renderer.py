@@ -252,9 +252,6 @@ class Splat(object):
         ey = py.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
         ez = pz.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
 
-        print(ex.shape, ey.shape, ez.shape)
-        print(self.xs.shape, self.ys.shape, self.zs.shape)
-
         # Expand the mask out so we can cancel out the contribution
         # of some of the points
         mask = mask.reshape(mask.shape[0], 1, 1, 1)
