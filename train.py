@@ -430,7 +430,7 @@ def init(args, device):
     elif args.objpath != "":
         data_loader = Loader(
             size=args.train_size + args.test_size,
-            objpath=args.objpath,
+            objpaths=[args.objpath],
             wobble=args.wobble,
             dropout=args.dropout,
             spawn=args.spawn_rate,
