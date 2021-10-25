@@ -34,6 +34,7 @@ from data.batcher import Batcher
 from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
+from net.model import Model
 from util.image import NormaliseNull, NormaliseTorch
 from util.math import PointsTen
 
@@ -214,7 +215,7 @@ def train(
     device,
     sigma_lookup,
     model,
-    points,
+    points_model,
     buffer_train,
     buffer_test,
     data_loader,
@@ -233,8 +234,8 @@ def train(
         The list of float values for the sigma value.
     model : nn.Module
         Our network we want to train.
-    points : PointsTen
-        The points we want to sort out.
+    points_model : Model
+        The model made up of our points
     buffer_train :  Buffer
         The buffer in front of our training data.
     data_loader : Loader
@@ -259,6 +260,10 @@ def train(
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
+
+    # Create our big points model
+    (points, indices) = points_model.get_ten(device=device)
+    points.data.requires_grad_(requires_grad=True)
 
     # Begin the epochs and training
     for epoch in range(args.epochs):
@@ -342,7 +347,9 @@ def train(
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
-    return points
+    points_model.from_ten(points)
+
+    return points_model
 
 
 def init(args, device):
@@ -456,13 +463,18 @@ def init(args, device):
     else:
         raise ValueError("You must provide either fitspath or objpath argument.")
 
-    # TODO - possibly remove fast-forward and what not.
-    # TODO - Loading for retraining should go somewhere else. We hardly ever
-    # do that these days anyway
+    # Create a model of 
+    points_model = Model()
 
-    points = init_points(
-        args.num_points, device=device, deterministic=args.deterministic
-    )
+    if len(args.startobjs) > 0:
+        points_model.load_models(args.startobjs)
+    else:
+        tpoints = init_points(
+            args.num_points, device=device, deterministic=args.deterministic
+        )
+        points_model.add_points(tpoints, 0)
+
+    # Create our main network
     model = Net(
         splat_out,
         predict_translate=(not args.no_translate),
@@ -473,15 +485,9 @@ def init(args, device):
     # Load our init points as well, if we are loading the same data
     # file later on - this is only in initialisation
     if os.path.isfile(args.savedir + "/points.csv"):
-        print("Loading points file", args.savedir + "/points.csv")
-        tpoints = load_points(args.savedir + "/points.csv")
-        points = PointsTen(device=device)
-        points.from_points(tpoints)
+        points_model.from_csv(args.savedir + "/points.csv")
     else:
-        points = init_points(num_points=args.num_points, device=device)
-        save_points(args.savedir + "/points.csv", points)
-
-    points.data.requires_grad_(requires_grad=True)
+        points_model.save_csv(args.savedir + "/points.csv")
 
     # Save the training data to disk so we can interrogate it later
     if args.save_train_data:
@@ -499,7 +505,7 @@ def init(args, device):
         device,
         sigma_lookup,
         model,
-        points,
+        points_model,
         buffer_train,
         buffer_test,
         data_loader,
@@ -507,6 +513,40 @@ def init(args, device):
     )
 
     save_model(model, args.savedir + "/model.tar")
+
+
+def check_args(args) -> bool:
+    """
+    Our loss function, used in train and test functions.
+
+    Parameters
+    ----------
+
+    args : dictionary? Namespace?
+        The args passed into the program, parsed by argparse
+
+    Returns
+    -------
+    bool
+        Is args valid?
+    """
+    if len(args.startobjs) > 0 and args.numpoints:
+        print("startobjs and numpoints cannot both be set.")
+        return False
+
+    if args.objpath and args.fitspath:
+        print("objpath and fitspath cannot both be set.")
+        return False
+
+    if not args.objpath and not args.fitspath:
+        print("Either objpath or fitspath must be set.")
+        return False
+
+    if (args.no_sigma and not args.predict_sigma) is True:
+        print("If no-sigma is set, you must set predict-sigma.")
+        return False
+
+    return True
 
 
 if __name__ == "__main__":
@@ -573,7 +613,7 @@ if __name__ == "__main__":
         help="Predict the sigma (default: False).",
     )
     parser.add_argument(
-        "--no-cuda", action="store_true", default=False, help="disables CUDA training"
+        "--no-cuda", action="store_true", default=False, help="disables CUDA training."
     )
     parser.add_argument(
         "--deterministic",
@@ -697,6 +737,13 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
+        "--startobjs",
+        default="",
+        metavar='S', type=str, nargs='+',
+        help="Path to the objs that forms the starting points.",
+        required=False,
+    )
+    parser.add_argument(
         "--train-size",
         type=int,
         default=50000,
@@ -747,6 +794,9 @@ if __name__ == "__main__":
     # Stats turn on
     if args.save_stats:
         S.on(args.savedir)
+
+    if not check_args(args):
+        sys.exit(0)
 
     # Initial setup of PyTorch
     use_cuda = not args.no_cuda and torch.cuda.is_available()

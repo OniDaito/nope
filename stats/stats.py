@@ -67,7 +67,8 @@ will be recorded."
 
     def close(self):
         """ Make sure we write to the DB. """
-        pass
+        self._error_printed = False
+
         # TODO - will probably get rid
         # self.db.close()
         # Zip now happens in the generate_stats.sh script
@@ -299,4 +300,4 @@ def update(epoch: int, set_size: int, batch_size: int, step: int):
 
 
 def close():
-    self._error_printed = False
+    stat.close()
