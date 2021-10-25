@@ -40,7 +40,7 @@ class Model(object):
     def _sort_points(self):
         self.points.sort(key=lambda x: x[0])
 
-    def get_ten(self, device="cpu") -> tuple(PointsTen, list):
+    def get_ten(self, device="cpu") -> Tuple[PointsTen, list]:
         tpoints = Points()
 
         for tp in self.points:
