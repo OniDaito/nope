@@ -25,29 +25,9 @@ gitbranch=$(git rev-parse --abbrev-ref HEAD)
 
 if [ -f $1/run.conf ]; then
   baseops=`tail -1 $1/run.conf`
-  tdir=`head -3 $1/run.conf | tail -1` # Get the basedir at runtime
-  vdir=`head -4 $1/run.conf | tail -1` # Get the datadir at runtime
-  basedir=${tdir:2}
-  datadir=${vdir:2}
   echo "Running with ops from conf file: " $baseops 
-elif [ -f run.conf ]; then
-  baseops=`tail -1 run.conf`
-  tdir=`head -3 run.conf | tail -1` # Get the basedir at runtime
-  vdir=`head -4 run.conf | tail -1` # Get the datadir at runtime
-  basedir=${tdir:2}
-  datadir=${vdir:2}
-  echo "Running with ops from conf file: " $baseops
-  cp run.conf $basedir/run.conf
 else
-  if [ $# != 3 ]
-    then
-      echo "Please pass in the directory to save results to, e.g train.sh <savedir> <comment> <datadir>"
-      exit 1
-  fi
-  basedir=$1
-  datadir=$2
-  baseops="python ./train.py --savedir $basedir --save-interval 100 --train-size 99500 --valid-size 250 --test-size 250 --ceppath $2 --save-stats --epochs 20 --batch-size 20 --log-interval 100 --num-points 302"
-  echo "Running with default ops: " $baseops
+  echo "Run directory must contain a run.conf file."
 fi
 
 git log --format=%B -n 1 HEAD >> $basedir/notes.txt
