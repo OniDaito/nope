@@ -59,6 +59,55 @@ class Point:
         return str(self.x) + ", " + str(self.y) + ", " + str(self.z) + ", " + str(self.w)
 
 
+class PointsTen:
+    """ Points, but in their tensor form for pytorch."""
+
+    # TODO - maybe just extend torch.Tensor?
+
+    def __init__(self, device="cpu"):
+        """
+        Create our Points on a particular device.
+
+        Parameters
+        ----------
+        x : float
+        y : float
+        z : float
+        w : float
+            Default - 1.0.
+
+        Returns
+        -------
+        self
+        """
+        self.device = device
+
+    def __len__(self) -> int:
+        return int(self.data.shape[0])
+
+
+    def from_tensor(self, t: torch.Tensor):
+        """
+        Create our PointsTen from a tensor.
+
+        This take a tensor and assumes it's in the correct
+        shape (N, 4, 1). Not ideal and will need to be
+        improved.
+
+        Parameters
+        ----------
+        t : torch.Tensor
+
+        Returns
+        -------
+        self
+
+        """
+        self.data = t
+        return self
+
+
+
 class Points:
     """A collection of points in a list. Mostly used
     to convert into a particular format of Tensor
@@ -195,6 +244,30 @@ class Points:
         self.size = len(self.data)
         return self
 
+    def to_ten(self, device="cpu") -> PointsTen:
+        """
+        Create our PointsTen from a Points instance
+
+        Parameters
+        ----------
+        points : Points
+
+        Returns
+        -------
+        self
+
+        """
+        tp = []
+        for p in self.data:
+            ttp = []
+            ttp.append([p.x])
+            ttp.append([p.y])
+            ttp.append([p.z])
+            ttp.append([p.w])
+            tp.append(ttp)
+        tten = torch.tensor(tp, dtype=torch.float32, device=device)
+        return PointsTen().from_tensor(tten)
+
     def __next__(self) -> Point:
         if self.counter >= self.size:
             self.counter = 0
@@ -218,6 +291,30 @@ class Points:
         for p in self.data:
             s += p.__str__() + "\n"
         return s
+
+
+def pointsten_to_points(pt: PointsTen) -> Points:
+    """
+    Return a Points from this tensor
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    Points
+        A points class
+
+    """
+    vertices = []
+    for i in range(pt.data.shape[0]):
+        vertices.append((float(pt.data[i][0][0]),
+                            float(pt.data[i][1][0]),
+                            float(pt.data[i][2][0]), 1.0))
+
+    points = Points().from_iterable(vertices)
+    return points
+
 
 
 class VecRot:
@@ -644,99 +741,6 @@ class Mask:
         for m in self.mask:
             tm.append([m])
         return torch.tensor(tm, dtype=torch.float32, device=device)
-
-
-class PointsTen:
-    """ Points, but in their tensor form for pytorch."""
-
-    # TODO - maybe just extend torch.Tensor?
-
-    def __init__(self, device="cpu"):
-        """
-        Create our Points on a particular device.
-
-        Parameters
-        ----------
-        x : float
-        y : float
-        z : float
-        w : float
-            Default - 1.0.
-
-        Returns
-        -------
-        self
-        """
-        self.device = device
-
-    def __len__(self) -> int:
-        return int(self.data.shape[0])
-
-    def from_points(self, points):
-        """
-        Create our PointsTen from a Points instance
-
-        Parameters
-        ----------
-        points : Points
-
-        Returns
-        -------
-        self
-
-        """
-        tp = []
-        for p in points:
-            ttp = []
-            ttp.append([p.x])
-            ttp.append([p.y])
-            ttp.append([p.z])
-            ttp.append([p.w])
-            tp.append(ttp)
-        self.data = torch.tensor(tp, dtype=torch.float32, device=self.device)
-        return self
-
-    def from_tensor(self, t: torch.Tensor):
-        """
-        Create our PointsTen from a tensor.
-
-        This take a tensor and assumes it's in the correct
-        shape (N, 4, 1). Not ideal and will need to be
-        improved.
-
-        Parameters
-        ----------
-        t : torch.Tensor
-
-        Returns
-        -------
-        self
-
-        """
-        self.data = t
-        return self
-
-    def get_points(self) -> Points:
-        """
-        Return a Points from this tensor
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        Points
-            A points class
-
-        """
-        vertices = []
-        for i in range(self.data.shape[0]):
-            vertices.append((float(self.data[i][0][0]),
-                             float(self.data[i][1][0]),
-                             float(self.data[i][2][0]), 1.0))
-
-        points = Points().from_iterable(vertices)
-        return points
 
 
 def mat_to_rod(mat: torch.Tensor) -> tuple:
