@@ -44,7 +44,7 @@ def load_points(filename) -> Points:
     return points
 
 
-def init_points(num_points=500, device="cpu", deterministic=False) -> PointsTen:
+def init_points(num_points=500, device="cpu", deterministic=False) -> Points:
     """
     Rather than load a torus or fixed shape, create a
     tensor that contains a random number of points.
@@ -81,9 +81,7 @@ def init_points(num_points=500, device="cpu", deterministic=False) -> PointsTen:
         )
         points.append(p)
 
-    fpoints = PointsTen(device=device)
-    fpoints.from_points(points)
-    return fpoints
+    return points
 
 
 def save_points(filename, points: Points):
