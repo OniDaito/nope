@@ -171,8 +171,7 @@ class Buffer(BaseBuffer):
                 datum = self.set.__next__()
                 if self.renderer is not None:
                     assert datum.type == ItemType.SIMULATED
-                    points = PointsTen(device=self.device)
-                    points.from_points(datum.points)
+                    points = datum.points.to_ten(device=self.device)
                     mask = datum.mask.to_ten(device=self.device)
                     r = datum.angle_axis.to_ten(device=self.device)
                     t = datum.trans.to_ten(device=self.device)
