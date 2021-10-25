@@ -53,7 +53,7 @@ fi
 git log --format=%B -n 1 HEAD >> $basedir/notes.txt
 
 echo "Time to train."
-
+rm  $basedir/run.conf
 echo "#!/bin/bash" > $basedir/run.conf
 echo "# Version of code tag: " `git describe --abbrev=0 --tags` >> $basedir/run.conf
 echo "# " $basedir >> $basedir/run.conf
