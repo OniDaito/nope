@@ -125,7 +125,7 @@ def test(
             # Offsets is essentially empty for the test buffer.
             target = ddata[0]
             target_shaped = normaliser.normalise(
-                target.reshape(args.batch_size, 1, args.image_size, args.image_size)
+                target.reshape(args.batch_size, 1, args.image_depth, args.image_height, args.image_width)
             )
 
             output = normaliser.normalise(model(target_shaped, points))
