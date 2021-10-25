@@ -486,8 +486,9 @@ def init(args, device):
     # file later on - this is only in initialisation
     if os.path.isfile(args.savedir + "/points.csv"):
         points_model.from_csv(args.savedir + "/points.csv")
-    else:
-        points_model.save_csv(args.savedir + "/points.csv")
+    # TODO - uncomment and implement
+    #else:
+    #    points_model.save_csv(args.savedir + "/points.csv")
 
     # Save the training data to disk so we can interrogate it later
     if args.save_train_data:
