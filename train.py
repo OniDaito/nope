@@ -130,7 +130,7 @@ def test(
 
             output = normaliser.normalise(model(target_shaped, points))
             output = output.reshape(
-                args.batch_size, 1, args.image_size, args.image_size
+                args.batch_size, 1, args.image_depth, args.image_height, args.image_width
             )
 
             rots_out.append(model.get_rots())
