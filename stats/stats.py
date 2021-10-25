@@ -28,6 +28,7 @@ class Stats(object):
     def __init__(self):
         # create a stream for logging
         self.watching = {}
+        self._error_printed = False
 
     def on(self, savedir: str):
         self.savedir = savedir
@@ -175,18 +176,22 @@ will be recorded."
     def update(self, epoch: int, set_size: int, batch_size: int, step: int):
         idx = epoch * set_size + step * batch_size
         """ Update all our streams with the current idx value. """
-        for name in self.watching.keys():
-            obj = self.watching[name]
-            self._conv(obj, name, epoch, step, idx)
+        try:
+            for name in self.watching.keys():
+                obj = self.watching[name]
+                self._conv(obj, name, epoch, step, idx)
+        except Exception:
+            if not self._error_printed:
+                print("No database to store statistic.")
+                self._error_printed = True
 
     def write_immediate(self, obj, name, epoch, step, idx):
         try:
             self._conv(obj, name, epoch, step, idx)
         except Exception:
-            pass
-            # This is naughty but until I find a way for it to be less
-            # verbose I'm leaving it in for this version.
-            #print("No database to store statistic.")
+             if not self._error_printed:
+                print("No database to store statistic.")
+                self._error_printed = True
 
     def save_jpg(
         self,
@@ -294,4 +299,4 @@ def update(epoch: int, set_size: int, batch_size: int, step: int):
 
 
 def close():
-    pass
+    self._error_printed = False
