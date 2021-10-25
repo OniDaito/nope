@@ -131,18 +131,17 @@ class Net(nn.Module):
         self.conv4b = nn.Conv3d(64, 64, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        #self.conv5 = nn.Conv3d(64, 128, 3, stride=2, padding=1)
-        #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv5 = nn.Conv3d(64, 128, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
 
-        #self.conv5b = nn.Conv3d(128, 128, 3, stride=1, padding=1)
-        #csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
+        self.conv5b = nn.Conv3d(128, 128, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         #self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
         #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
         
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
-        print("CSIZE", csize * csize * 128)
         self.fc1 = nn.Linear(csize * csize * 128, 256)
         nx = 3
 
@@ -167,8 +166,8 @@ class Net(nn.Module):
             self.conv3b,
             self.conv4,
             self.conv4b,
-            #self.conv5,
-            #self.conv5b,
+            self.conv5,
+            self.conv5b,
             #self.conv6,
             self.fc1,
             self.fc2,
@@ -251,8 +250,8 @@ class Net(nn.Module):
         x = F.leaky_relu(self.batch4(self.conv4(x)))
         x = F.leaky_relu(self.batch4b(self.conv4b(x)))
 
-        #x = F.leaky_relu(self.batch5(self.conv5(x)))
-        #x = F.leaky_relu(self.batch5b(self.conv5b(x)))
+        x = F.leaky_relu(self.batch5(self.conv5(x)))
+        x = F.leaky_relu(self.batch5b(self.conv5b(x)))
 
         #x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
@@ -279,17 +278,17 @@ class Net(nn.Module):
             nx = 3
 
             if self.predict_translate:
-                tx = (torch.tanh(rot[nx+1]) * 2.0) * self.max_shift
-                ty = (torch.tanh(rot[nx+2]) * 2.0) * self.max_shift
-                tz = (torch.tanh(rot[nx+3]) * 2.0) * self.max_shift
+                tx = (torch.tanh(rot[nx]) * 2.0) * self.max_shift
+                ty = (torch.tanh(rot[nx+1]) * 2.0) * self.max_shift
+                tz = (torch.tanh(rot[nx+2]) * 2.0) * self.max_shift
                 nx += 3
 
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma
 
             if self.predict_sigma:
-                nx += 1
                 final_sigma = torch.clamp(sp(rot[nx]), max=14)
+                nx += 1
             else:
                 final_sigma = self.sigma
             # exp(tanh(s) * log(3))
