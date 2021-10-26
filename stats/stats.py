@@ -244,6 +244,9 @@ will be recorded."
         """Save the points as either an obj or ply file."""
         if not os.path.exists(savedir + "/objs"):
             os.makedirs(savedir + "/objs/")
+        
+        if not os.path.exists(savedir + "/plys"):
+            os.makedirs(savedir + "/plys/")
 
         path_obj = (
             savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)

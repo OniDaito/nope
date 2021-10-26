@@ -372,7 +372,6 @@ def init(args, device):
     # Continue training or start anew
     # Declare the variables we absolutely need
     model = None
-    points = None
     buffer_train = None
     buffer_test = None
     data_loader = None

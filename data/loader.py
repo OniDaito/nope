@@ -28,7 +28,6 @@ import math
 from tqdm import tqdm
 from enum import Enum
 from util.math import Points, Point, Mask, Trans, VecRot
-from pyquaternion import Quaternion
 
 ItemType = Enum("SetType", "SIMULATED FITSIMAGE")
 

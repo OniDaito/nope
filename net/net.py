@@ -14,15 +14,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen
+from typing import Tuple
 
 
-def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
+def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
     """
     Return the size of the convolution layer given a set of parameters
 
     Parameters
     ----------
-    x : int
+    size : tuple (int, int, int)
         The size of the input tensor
 
     padding: int
@@ -35,7 +36,10 @@ def conv_size(x, padding=0, kernel_size=5, stride=1) -> int:
         The conv stride - default 1
 
     """
-    return int((x - kernel_size + 2*padding) / stride + 1)
+    z = int((size[0] - kernel_size + 2*padding) / stride + 1)
+    y = int((size[1] - kernel_size + 2*padding) / stride + 1)
+    x = int((size[2] - kernel_size + 2*padding) / stride + 1)
+    return (z, y, x)
 
 
 def num_flat_features(x):
@@ -111,7 +115,7 @@ class Net(nn.Module):
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
         self.conv1 = nn.Conv3d(1, 8, 5, stride=2, padding=2)
-        csize = conv_size(splat.size[0], padding=2, stride=2)
+        csize = conv_size(splat.size, padding=2, stride=2)
 
         self.conv2 = nn.Conv3d(8, 16, 3, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
@@ -137,12 +141,12 @@ class Net(nn.Module):
         self.conv5b = nn.Conv3d(128, 128, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        #self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
-        #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
         
         # Fully connected layers
         #self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize * csize * 128, 256)
+        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
         nx = 3
 
         if self.predict_translate:
@@ -168,7 +172,7 @@ class Net(nn.Module):
             self.conv4b,
             self.conv5,
             self.conv5b,
-            #self.conv6,
+            self.conv6,
             self.fc1,
             self.fc2,
         ]
@@ -255,9 +259,6 @@ class Net(nn.Module):
 
         #x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
-
-        print("SHAPES", x.shape, self.fc1.shape)
-
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 
