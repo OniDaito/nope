@@ -457,11 +457,10 @@ def init(args, device):
     else:
         raise ValueError("You must provide either fitspath or objpath argument.")  
 
-    # Create a model of points
+    # Create a model of points. We create from multiple obj/ply files and keep
+    # track of the indices.
     points_model = Model()
-    (points, indices) = points_model.get_ten(device=device)
-    points.data.requires_grad_(requires_grad=True)
-
+  
     if len(args.startobjs) > 0:
         points_model.load_models(args.startobjs)
     else:
@@ -469,6 +468,9 @@ def init(args, device):
             args.num_points, device=device, deterministic=args.deterministic
         )
         points_model.add_points(tpoints, 0)
+    
+    (points, indices) = points_model.get_ten(device=device)
+    points.data.requires_grad_(requires_grad=True)
 
     # Create our main network
     model = Net(
