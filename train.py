@@ -234,7 +234,7 @@ def train(
         The list of float values for the sigma value.
     model : nn.Module
         Our network we want to train.
-    points_model : Model
+    points : PointsTen
         The model made up of our points
     buffer_train :  Buffer
         The buffer in front of our training data.
@@ -480,8 +480,8 @@ def init(args, device):
 
     # Load our init points as well, if we are loading the same data
     # file later on - this is only in initialisation
-    if os.path.isfile(args.savedir + "/points.csv"):
-        points_model.from_csv(args.savedir + "/points.csv")
+    #if os.path.isfile(args.savedir + "/points.csv"):
+    #    points_model.from_csv(args.savedir + "/points.csv")
     # TODO - uncomment and implement
     #else:
     #    points_model.save_csv(args.savedir + "/points.csv")
