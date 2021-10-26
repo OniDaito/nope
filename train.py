@@ -215,7 +215,7 @@ def train(
     device,
     sigma_lookup,
     model,
-    points_model,
+    points,
     buffer_train,
     buffer_test,
     data_loader,
@@ -260,10 +260,6 @@ def train(
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
-
-    # Create our big points model
-    (points, indices) = points_model.get_ten(device=device)
-    points.data.requires_grad_(requires_grad=True)
 
     # Begin the epochs and training
     for epoch in range(args.epochs):
@@ -347,9 +343,8 @@ def train(
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
-    points_model.from_ten(points)
 
-    return points_model
+    return points
 
 
 def init(args, device):
@@ -460,10 +455,12 @@ def init(args, device):
             set_test, splat_in, buffer_size=test_set_size, device=device
         )
     else:
-        raise ValueError("You must provide either fitspath or objpath argument.")
+        raise ValueError("You must provide either fitspath or objpath argument.")  
 
-    # Create a model of 
+    # Create a model of points
     points_model = Model()
+    (points, indices) = points_model.get_ten(device=device)
+    points.data.requires_grad_(requires_grad=True)
 
     if len(args.startobjs) > 0:
         points_model.load_models(args.startobjs)
@@ -505,13 +502,14 @@ def init(args, device):
         device,
         sigma_lookup,
         model,
-        points_model,
+        points,
         buffer_train,
         buffer_test,
         data_loader,
         optimiser
     )
 
+    points_model.from_ten(points)
     save_model(model, args.savedir + "/model.tar")
 
 
