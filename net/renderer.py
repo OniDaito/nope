@@ -165,7 +165,7 @@ class Splat(object):
 
         """
         self.rot_mat = gen_mat_from_rod(a)
-        self.trans_mat = gen_trans_xyz(t.x, t.y, tz)
+        self.trans_mat = gen_trans_xyz(t.x, t.y, t.z)
         self.modelview = torch.matmul(self.rot_mat, self.trans_mat)
         o = torch.matmul(self.modelview, points.data)
         return o

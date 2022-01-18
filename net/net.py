@@ -141,12 +141,12 @@ class Net(nn.Module):
         self.conv5b = nn.Conv3d(128, 128, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        #self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
+        #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
         
         # Fully connected layers
-        #self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
+        self.fc1 = nn.Linear(1024, 512)
+        #self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
         nx = 3
 
         if self.predict_translate:
@@ -154,7 +154,7 @@ class Net(nn.Module):
         if self.predict_sigma:
             nx += 1
 
-        self.fc2 = nn.Linear(256, nx)
+        self.fc2 = nn.Linear(512, nx)
 
         self.max_shift = max_trans
         self.splat = splat
@@ -172,7 +172,7 @@ class Net(nn.Module):
             self.conv4b,
             self.conv5,
             self.conv5b,
-            self.conv6,
+            #self.conv6,
             self.fc1,
             self.fc2,
         ]
@@ -259,6 +259,7 @@ class Net(nn.Module):
 
         #x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
+        print("shapes x, fc1", x.shape, self.fc1)
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 

@@ -49,6 +49,11 @@ class Model(object):
         return (tpoints.to_ten(device=device), self.indices)
 
     def from_ten(self, points: PointsTen):
+        # In case it's just the single model
+        if len(self.indices) == 1:
+            self.points.append(points.get_points())   
+            return  
+
         tensors = points.data.split(self.indices)
         for t in tensors:
             tpoints = PointsTen(device=points.device)
