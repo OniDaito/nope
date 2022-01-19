@@ -295,8 +295,10 @@ def train(
 
     with torch.profiler.profile(
         schedule=torch.profiler.schedule(wait=2, warmup=2, active=6, repeat=1),
-        on_trace_ready=tensorboard_trace_handler,
+        on_trace_ready=tensorboard_trace_handler(args.savedir + "/log"),
         with_stack=True,
+        record_shapes=True,
+        profile_memory=True,
     ) as profiler:
 
         # Begin the epochs and training
