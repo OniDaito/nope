@@ -117,29 +117,29 @@ class Net(nn.Module):
         self.conv1 = nn.Conv3d(1, 8, 5, stride=2, padding=2)
         csize = conv_size(splat.size, padding=2, stride=2)
 
-        self.conv2 = nn.Conv3d(8, 16, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
-
-        self.conv2b = nn.Conv3d(16, 16, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv3d(8, 16, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv3 = nn.Conv3d(16, 32, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv2b = nn.Conv3d(16, 16, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=2)
 
-        self.conv3b = nn.Conv3d(32, 32, 3, stride=1, padding=1)
+        self.conv3 = nn.Conv3d(16, 32, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv4 = nn.Conv3d(32, 64, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv3b = nn.Conv3d(32, 32, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv4b = nn.Conv3d(64, 64, 3, stride=1, padding=1)
+        self.conv4 = nn.Conv3d(32, 64, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv5 = nn.Conv3d(64, 128, 3, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
+        self.conv4b = nn.Conv3d(64, 64, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv5b = nn.Conv3d(128, 128, 3, stride=1, padding=1)
+        self.conv5 = nn.Conv3d(64, 128, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
+
+        self.conv5b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=2)
 
         #self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
         #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
@@ -259,7 +259,6 @@ class Net(nn.Module):
 
         #x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
-        print("shapes x, fc1", x.shape, self.fc1)
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 

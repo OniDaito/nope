@@ -18,6 +18,12 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
+from torch.profiler import (
+    profile,
+    record_function,
+    ProfilerActivity,
+    tensorboard_trace_handler,
+)
 import numpy as np
 import math
 import random
@@ -126,12 +132,22 @@ def test(
             # Offsets is essentially empty for the test buffer.
             target = ddata[0]
             target_shaped = normaliser.normalise(
-                target.reshape(args.batch_size, 1, args.image_depth, args.image_height, args.image_width)
+                target.reshape(
+                    args.batch_size,
+                    1,
+                    args.image_depth,
+                    args.image_height,
+                    args.image_width,
+                )
             )
 
             output = normaliser.normalise(model(target_shaped, points))
             output = output.reshape(
-                args.batch_size, 1, args.image_depth, args.image_height, args.image_width
+                args.batch_size,
+                1,
+                args.image_depth,
+                args.image_height,
+                args.image_width,
             )
 
             rots_out.append(model.get_rots())
@@ -141,8 +157,22 @@ def test(
             if batch_idx == image_choice:
                 target = torch.squeeze(target_shaped[0])
                 output = torch.squeeze(output[0])
-                S.save_jpg(torch.sum(target, dim=0), args.savedir, "in_e", epoch, step, batch_idx)
-                S.save_jpg(torch.sum(output, dim=0), args.savedir, "out_e", epoch, step, batch_idx)
+                S.save_jpg(
+                    torch.sum(target, dim=0),
+                    args.savedir,
+                    "in_e",
+                    epoch,
+                    step,
+                    batch_idx,
+                )
+                S.save_jpg(
+                    torch.sum(output, dim=0),
+                    args.savedir,
+                    "out_e",
+                    epoch,
+                    step,
+                    batch_idx,
+                )
                 S.save_fits(target, args.savedir, "in_e", epoch, step, batch_idx)
                 S.save_fits(output, args.savedir, "out_e", epoch, step, batch_idx)
 
@@ -153,7 +183,9 @@ def test(
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
                     sp = nn.Softplus(threshold=12)
-                    sig_out = torch.tensor([torch.clamp(sp(x[ps]), max=14) for x in model._final])
+                    sig_out = torch.tensor(
+                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
+                    )
                     S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
@@ -261,85 +293,101 @@ def train(
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
 
-    # Begin the epochs and training
-    for epoch in range(args.epochs):
-        if not args.cont:
-            sigma = sigma_lookup[min(epoch, len(sigma_lookup) - 1)]
+    with torch.profiler.profile(
+        schedule=torch.profiler.schedule(wait=2, warmup=2, active=6, repeat=1),
+        on_trace_ready=tensorboard_trace_handler,
+        with_stack=True,
+    ) as profiler:
 
-        # Set the sigma - two seems too many
-        model.set_sigma(sigma)
-        data_loader.set_sigma(sigma)
+        # Begin the epochs and training
+        for epoch in range(args.epochs):
+            if not args.cont:
+                sigma = sigma_lookup[min(epoch, len(sigma_lookup) - 1)]
 
-        # Now begin proper
-        print("Starting Epoch", epoch)
-        for batch_idx, ddata in enumerate(batcher):
-            target = ddata[0]
-            optimiser.zero_grad()
+            # Set the sigma - two seems too many
+            model.set_sigma(sigma)
+            data_loader.set_sigma(sigma)
 
-            # Shape and normalise the input batch
-            target_shaped = normaliser.normalise(
-                target.reshape(args.batch_size, 1, args.image_depth, args.image_height, args.image_width)
-            )
+            # Now begin proper
+            print("Starting Epoch", epoch)
+            for batch_idx, ddata in enumerate(batcher):
+                target = ddata[0]
+                optimiser.zero_grad()
 
-            output = normaliser.normalise(model(target_shaped, points))
-
-            loss = calculate_loss(target_shaped, output)
-            loss.backward()
-            lossy = loss.item()
-            optimiser.step()
-
-            # If we are using continuous sigma, lets update it here
-            if args.cont and not args.no_sigma:
-                sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
-                # 2 places again - not ideal :/
-                data_loader.set_sigma(sigma)
-                model.set_sigma(sigma)
-
-            # We save here because we want our first step to be untrained
-            # network
-            if batch_idx % args.log_interval == 0:
-                # Add watches here
-                S.watch(lossy, "loss_train")
-                # Temporary ignore of images in the DB
-                # S.watch(target[0], "target")
-                # S.watch(output[0], "output")
-                if args.predict_sigma:
-                    S.watch(sigma, "sigma_in")
-
-                print(
-                    "Train Epoch: \
-                    {} [{}/{} ({:.0f}%)]\tLoss Main: {:.6f}".format(
-                        epoch,
-                        batch_idx * args.batch_size,
-                        buffer_train.set.size,
-                        100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                        lossy
+                # Shape and normalise the input batch
+                target_shaped = normaliser.normalise(
+                    target.reshape(
+                        args.batch_size,
+                        1,
+                        args.image_depth,
+                        args.image_height,
+                        args.image_width,
                     )
                 )
 
-                if args.save_stats:
-                    test(args, model, buffer_test, epoch, batch_idx, points, sigma)
-                    S.save_points(points, args.savedir, epoch, batch_idx)
-                    S.update(epoch, buffer_train.set.size, args.batch_size, batch_idx)
+                output = normaliser.normalise(model(target_shaped, points))
 
-            if batch_idx % args.save_interval == 0:
-                print("saving checkpoint", batch_idx, epoch)
-                save_model(model, args.savedir + "/model.tar")
+                loss = calculate_loss(target_shaped, output)
+                loss.backward()
+                lossy = loss.item()
+                optimiser.step()
 
-                save_checkpoint(
-                    model,
-                    points,
-                    optimiser,
-                    epoch,
-                    batch_idx,
-                    loss,
-                    sigma,
-                    args,
-                    args.savedir,
-                    args.savename,
-                )
+                # If we are using continuous sigma, lets update it here
+                if args.cont and not args.no_sigma:
+                    sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
+                    # 2 places again - not ideal :/
+                    data_loader.set_sigma(sigma)
+                    model.set_sigma(sigma)
 
-        buffer_train.set.shuffle()
+                # We save here because we want our first step to be untrained
+                # network
+                if batch_idx % args.log_interval == 0:
+                    # Add watches here
+                    S.watch(lossy, "loss_train")
+                    # Temporary ignore of images in the DB
+                    # S.watch(target[0], "target")
+                    # S.watch(output[0], "output")
+                    if args.predict_sigma:
+                        S.watch(sigma, "sigma_in")
+
+                    print(
+                        "Train Epoch: \
+                        {} [{}/{} ({:.0f}%)]\tLoss Main: {:.6f}".format(
+                            epoch,
+                            batch_idx * args.batch_size,
+                            buffer_train.set.size,
+                            100.0 * batch_idx * args.batch_size / buffer_train.set.size,
+                            lossy,
+                        )
+                    )
+
+                    if args.save_stats:
+                        test(args, model, buffer_test, epoch, batch_idx, points, sigma)
+                        S.save_points(points, args.savedir, epoch, batch_idx)
+                        S.update(
+                            epoch, buffer_train.set.size, args.batch_size, batch_idx
+                        )
+
+                if batch_idx % args.save_interval == 0:
+                    print("saving checkpoint", batch_idx, epoch)
+                    save_model(model, args.savedir + "/model.tar")
+
+                    save_checkpoint(
+                        model,
+                        points,
+                        optimiser,
+                        epoch,
+                        batch_idx,
+                        loss,
+                        sigma,
+                        args,
+                        args.savedir,
+                        args.savename,
+                    )
+
+                profiler.step()
+
+            buffer_train.set.shuffle()
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -422,11 +470,14 @@ def init(args, device):
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
         buffer_train = BufferImage(
-            set_train, buffer_size=args.buffer_size, device=device,
-                image_size=image_size
+            set_train,
+            buffer_size=args.buffer_size,
+            device=device,
+            image_size=image_size,
         )
-        buffer_test = BufferImage(set_test, buffer_size=test_set_size, 
-            image_size=image_size,  device=device)
+        buffer_test = BufferImage(
+            set_test, buffer_size=test_set_size, image_size=image_size, device=device
+        )
 
     elif args.objpath != "":
         data_loader = Loader(
@@ -440,7 +491,7 @@ def init(args, device):
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
-            num_augment=args.num_aug
+            num_augment=args.num_aug,
         )
 
         fsize = min(data_loader.size - test_set_size, train_set_size)
@@ -455,12 +506,12 @@ def init(args, device):
             set_test, splat_in, buffer_size=test_set_size, device=device
         )
     else:
-        raise ValueError("You must provide either fitspath or objpath argument.")  
+        raise ValueError("You must provide either fitspath or objpath argument.")
 
     # Create a model of points. We create from multiple obj/ply files and keep
     # track of the indices.
     points_model = Model()
-  
+
     if len(args.startobjs) > 0:
         points_model.load_models(args.startobjs)
     else:
@@ -468,7 +519,7 @@ def init(args, device):
             args.num_points, device=device, deterministic=args.deterministic
         )
         points_model.add_points(tpoints, 0)
-    
+
     (points, indices) = points_model.get_ten(device=device)
     points.data.requires_grad_(requires_grad=True)
 
@@ -477,15 +528,15 @@ def init(args, device):
         splat_out,
         predict_translate=(not args.no_translate),
         predict_sigma=args.predict_sigma,
-        max_trans=args.max_trans
+        max_trans=args.max_trans,
     ).to(device)
 
     # Load our init points as well, if we are loading the same data
     # file later on - this is only in initialisation
-    #if os.path.isfile(args.savedir + "/points.csv"):
+    # if os.path.isfile(args.savedir + "/points.csv"):
     #    points_model.from_csv(args.savedir + "/points.csv")
     # TODO - uncomment and implement
-    #else:
+    # else:
     #    points_model.save_csv(args.savedir + "/points.csv")
 
     # Save the training data to disk so we can interrogate it later
@@ -499,7 +550,10 @@ def init(args, device):
     optimiser = optim.AdamW(variables, lr=args.lr)
     print("Starting new model")
 
+    # with profile(activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU], profile_memory=True, record_shapes=True) as prof:
+    #    with record_function("model_inference"):
     # Now start the training proper
+
     train(
         args,
         device,
@@ -509,8 +563,13 @@ def init(args, device):
         buffer_train,
         buffer_test,
         data_loader,
-        optimiser
+        optimiser,
     )
+
+    # print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+    # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+    # prof.export_chrome_trace("trace.json")
+    # print(prof.key_averages(group_by_stack_n=5).table(sort_by='self_cpu_time_total', row_limit=5))
 
     points_model.from_ten(points)
     save_model(model, args.savedir + "/model.tar")
@@ -740,7 +799,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--startobjs",
         default="",
-        metavar='S', type=str, nargs='+',
+        metavar="S",
+        type=str,
+        nargs="+",
         help="Path to the objs that forms the starting points.",
         required=False,
     )
