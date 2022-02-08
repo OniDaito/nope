@@ -23,7 +23,33 @@ from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
-from util.math import PointsTen
+from util.math import VecRotTen
+from globals import DTYPE
+
+
+class ItemBuffer(object):
+    def __init__(self, datum: torch.Tensor):
+        self.datum = datum
+
+    def flatten(self):
+        return (self.datum,)
+
+
+class ItemRendered(ItemBuffer):
+    def __init__(
+        self,
+        rendered: torch.Tensor,
+        rotation: VecRotTen,
+        translation,
+        sigma: torch.Tensor
+    ):
+        super().__init__(rendered)
+        self.rotation = rotation
+        self.translation = translation
+        self.sigma = sigma
+
+    def flatten(self):
+        return (self.datum, self.rotation, self.sigma)
 
 
 class BaseBuffer(object):
@@ -102,10 +128,10 @@ class BaseBuffer(object):
         return len(self.set)
 
     def fill(self):
-        """ Placeholder for now."""
+        """Placeholder for now."""
         assert False
 
-    def __next__(self) -> tuple:
+    def __next__(self) -> ItemBuffer:
         """Return the rendered image, the transform list,
         and the sigma. or just rendered image if we are going for FITS
         image."""
@@ -175,11 +201,13 @@ class Buffer(BaseBuffer):
                     mask = datum.mask.to_ten(device=self.device)
                     r = datum.angle_axis.to_ten(device=self.device)
                     t = datum.trans.to_ten(device=self.device)
+               
+                    sigma = torch.tensor((datum.sigma), dtype=DTYPE, device=self.device)
                     rendered = self.renderer.render(
-                        points, r, t, mask=mask, sigma=datum.sigma
+                        points, r, t, mask, sigma
                     )
 
-                self.buffer.append((rendered, r, t, datum.sigma))
+                self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
 
         except Exception as e:
             raise e
@@ -260,7 +288,7 @@ class BufferImage(BaseBuffer):
                 assert datum.type == ItemType.FITSIMAGE
                 with fits.open(datum.path) as w:
                     hdul = w[0].data.byteswap().newbyteorder()
-                    timg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
+                    timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
 
                     assert (
                         timg.shape[0] == self.image_dim[0]
@@ -268,11 +296,11 @@ class BufferImage(BaseBuffer):
                         and timg.shape[2] == self.image_dim[2]
                     )
                     # Append as a tuple to match buffers
-                    self.buffer.append((timg,))
+                    self.buffer.append(ItemBuffer(timg))
 
         except Exception as e:
             raise e
 
     def image_size(self):
-        """ The renderer is what holds the final image size."""
+        """The renderer is what holds the final image size."""
         return self.image_dim

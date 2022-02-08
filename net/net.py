@@ -8,13 +8,16 @@ Author : Benjamin Blundell - k1803390@kcl.ac.uk
  net.py - an attempt to find the 3D shape from an image.
 
 """
+
 import torch
 import random
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.cuda.amp import autocast
 from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen
 from typing import Tuple
+from globals import DTYPE
 
 
 def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
@@ -36,9 +39,9 @@ def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
         The conv stride - default 1
 
     """
-    z = int((size[0] - kernel_size + 2*padding) / stride + 1)
-    y = int((size[1] - kernel_size + 2*padding) / stride + 1)
-    x = int((size[2] - kernel_size + 2*padding) / stride + 1)
+    z = int((size[0] - kernel_size + 2 * padding) / stride + 1)
+    y = int((size[1] - kernel_size + 2 * padding) / stride + 1)
+    x = int((size[2] - kernel_size + 2 * padding) / stride + 1)
     return (z, y, x)
 
 
@@ -71,7 +74,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, predict_translate=False, predict_sigma=False, max_trans=1.0):
+    def __init__(self, splat: Splat, max_trans=1.0):
         """
         Initialise the model.
 
@@ -105,12 +108,6 @@ class Net(nn.Module):
         self.batch5b = nn.BatchNorm3d(128)
         self.batch6 = nn.BatchNorm3d(128)
 
-        # Model the sigma
-        self.predict_sigma = predict_sigma
-
-        # Model translation
-        self.predict_translate = predict_translate
-
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
@@ -140,27 +137,19 @@ class Net(nn.Module):
 
         self.conv5b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=2)
-
-        #self.conv6 = nn.Conv3d(128, 128, 3, stride=2, padding=1)
-        #csize = conv_size(csize, padding=1, stride=2, kernel_size=3)
         
         # Fully connected layers
         self.fc1 = nn.Linear(1024, 512)
-        #self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
-        nx = 3
+        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
+        self.params = 7
 
-        if self.predict_translate:
-            nx += 3
-        if self.predict_sigma:
-            nx += 1
-
-        self.fc2 = nn.Linear(512, nx)
+        self.fc2 = nn.Linear(512, self.params)
 
         self.max_shift = max_trans
         self.splat = splat
         self.device = self.splat.device
         self._lidx = 0
-        self._mask = torch.zeros(splat.size, dtype=torch.float32)
+        self._mask = torch.zeros(splat.size, dtype=DTYPE)
 
         self.layers = [
             self.conv1,
@@ -172,7 +161,6 @@ class Net(nn.Module):
             self.conv4b,
             self.conv5,
             self.conv5b,
-            #self.conv6,
             self.fc1,
             self.fc2,
         ]
@@ -202,27 +190,10 @@ class Net(nn.Module):
     def set_splat(self, splat: Splat):
         self.splat = splat
 
-    def set_sigma(self, sigma: float):
-        """
-        Set the total sigma we are rendering. Our network will
-        predict a bit more based on the wobble.
-
-        Parameters
-        ----------
-        sigma : float
-            The sigma value used by the renderer
-
-        Returns
-        -------
-        None
-
-        """
-
-        self.sigma = sigma
-
     def get_rots(self):
         return self._final
 
+    @autocast()
     def forward(self, target: torch.Tensor, points: PointsTen):
         """
         Our forward pass. We take the input image (x), the
@@ -257,7 +228,6 @@ class Net(nn.Module):
         x = F.leaky_relu(self.batch5(self.conv5(x)))
         x = F.leaky_relu(self.batch5b(self.conv5b(x)))
 
-        #x = F.leaky_relu(self.batch6(self.conv6(x)))
         x = x.view(-1, num_flat_features(x))
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
@@ -275,27 +245,14 @@ class Net(nn.Module):
         images = []
 
         for idx, rot in enumerate(self._final):
-            tx = torch.tensor([0.0], dtype=torch.float32, device=self.device)
-            ty = torch.tensor([0.0], dtype=torch.float32, device=self.device)
-            tz = torch.tensor([0.0], dtype=torch.float32, device=self.device)
-            nx = 3
 
-            if self.predict_translate:
-                tx = (torch.tanh(rot[nx]) * 2.0) * self.max_shift
-                ty = (torch.tanh(rot[nx+1]) * 2.0) * self.max_shift
-                tz = (torch.tanh(rot[nx+2]) * 2.0) * self.max_shift
-                nx += 3
+            tx = (torch.tanh(rot[3]) * 2.0) * self.max_shift
+            ty = (torch.tanh(rot[4]) * 2.0) * self.max_shift
+            tz = (torch.tanh(rot[5]) * 2.0) * self.max_shift
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = self.sigma
-
-            if self.predict_sigma:
-                final_sigma = torch.clamp(sp(rot[nx]), max=14)
-                nx += 1
-            else:
-                final_sigma = self.sigma
-            # exp(tanh(s) * log(3))
-
+            final_sigma = torch.clamp(sp(rot[6]), max=14)
+       
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 

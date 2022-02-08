@@ -22,6 +22,7 @@ from util.math import (
     TransTen,
     PointsTen,
 )
+from globals import DTYPE
 
 
 class Splat(object):
@@ -74,9 +75,9 @@ class Splat(object):
         )
 
         self.ndc = gen_ndc(self.size, device=self.device)
-        self.xs = torch.tensor([0], dtype=torch.float32)
-        self.ys = torch.tensor([0], dtype=torch.float32)
-        self.zs = torch.tensor([0], dtype=torch.float32)
+        self.xs = torch.tensor([0], dtype=DTYPE)
+        self.ys = torch.tensor([0], dtype=DTYPE)
+        self.zs = torch.tensor([0], dtype=DTYPE)
 
         mask = []
         for _ in range(0, 200):
@@ -103,7 +104,7 @@ class Splat(object):
         for i in range(0, points.data.shape[0]):
             hypercube.append(cuboid)
 
-        self.xs = torch.tensor(hypercube, dtype=torch.float32, device=self.device)
+        self.xs = torch.tensor(hypercube, dtype=DTYPE, device=self.device)
 
         # The Y indices
         rectangle = []
@@ -120,7 +121,7 @@ class Splat(object):
         for i in range(0, points.data.shape[0]):
             hypercube.append(cuboid)
 
-        self.ys = torch.tensor(hypercube, dtype=torch.float32, device=self.device)
+        self.ys = torch.tensor(hypercube, dtype=DTYPE, device=self.device)
 
         # The Z indices
         rectangle = []
@@ -137,7 +138,7 @@ class Splat(object):
         for i in range(0, points.data.shape[0]):
             hypercube.append(cuboid)
 
-        self.zs = torch.tensor(hypercube, dtype=torch.float32, device=self.device)
+        self.zs = torch.tensor(hypercube, dtype=DTYPE, device=self.device)
 
     def transform_points(
         self, points: torch.Tensor, a: VecRotTen, t: TransTen

@@ -130,7 +130,7 @@ def test(
         # turn off grads because for some reason, memory goes BOOM!
         with torch.no_grad():
             # Offsets is essentially empty for the test buffer.
-            target = ddata[0]
+            target = ddata.datum
             target_shaped = normaliser.normalise(
                 target.reshape(
                     args.batch_size,
@@ -192,7 +192,7 @@ def test(
             S.watch(loss, "loss_test")  # loss saved for the last batch only.
             if args.objpath != "":
                 # Assume we are simulating so we have rots to save
-                rots_in.append(ddata[1])
+                rots_in.append(ddata.rotations)
 
     buffer_test.set.shuffle()
     model.train()
@@ -303,17 +303,12 @@ def train(
 
         # Begin the epochs and training
         for epoch in range(args.epochs):
-            if not args.cont:
-                sigma = sigma_lookup[min(epoch, len(sigma_lookup) - 1)]
-
-            # Set the sigma - two seems too many
-            model.set_sigma(sigma)
             data_loader.set_sigma(sigma)
 
             # Now begin proper
             print("Starting Epoch", epoch)
             for batch_idx, ddata in enumerate(batcher):
-                target = ddata[0]
+                target = ddata.target
                 optimiser.zero_grad()
 
                 # Shape and normalise the input batch
@@ -335,11 +330,8 @@ def train(
                 optimiser.step()
 
                 # If we are using continuous sigma, lets update it here
-                if args.cont and not args.no_sigma:
-                    sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
-                    # 2 places again - not ideal :/
-                    data_loader.set_sigma(sigma)
-                    model.set_sigma(sigma)
+                sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
+                data_loader.set_sigma(sigma)
 
                 # We save here because we want our first step to be untrained
                 # network
@@ -433,22 +425,16 @@ def init(args, device):
 
     # Sigma checks. Do we use a file, do we go continuous etc?
     # Check for sigma blur file
-    sigma_lookup = [None]
+    sigma_lookup = [10.0, 1.25]
 
-    if not args.no_sigma:
-        sigma_lookup = [10.0, 1.25]
-        if len(args.sigma_file) > 0:
-            if os.path.isfile(args.sigma_file):
-                with open(args.sigma_file, "r") as f:
-                    ss = f.read()
-                    sigma_lookup = []
-                    tokens = ss.replace("\n", "").split(",")
-                    for token in tokens:
-                        sigma_lookup.append(float(token))
-
-    if (args.no_sigma and not args.predict_sigma) is True:
-        print("If using no-sigma, you must predict sigma")
-        sys.exit()
+    if len(args.sigma_file) > 0:
+        if os.path.isfile(args.sigma_file):
+            with open(args.sigma_file, "r") as f:
+                ss = f.read()
+                sigma_lookup = []
+                tokens = ss.replace("\n", "").split(",")
+                for token in tokens:
+                    sigma_lookup.append(float(token))
 
     # Setup our splatting pipeline. We use two splats with the same
     # values because one never changes its points / mask so it sits on
@@ -489,7 +475,6 @@ def init(args, device):
             dropout=args.dropout,
             spawn=args.spawn_rate,
             max_spawn=args.max_spawn,
-            translate=(not args.no_data_translate),
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
@@ -528,9 +513,7 @@ def init(args, device):
     # Create our main network
     model = Net(
         splat_out,
-        predict_translate=(not args.no_translate),
-        predict_sigma=args.predict_sigma,
-        max_trans=args.max_trans,
+        max_trans=args.max_trans
     ).to(device)
 
     # Load our init points as well, if we are loading the same data
@@ -565,7 +548,7 @@ def init(args, device):
         buffer_train,
         buffer_test,
         data_loader,
-        optimiser,
+        optimiser
     )
 
     # print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
@@ -602,10 +585,6 @@ def check_args(args) -> bool:
 
     if not args.objpath and not args.fitspath:
         print("Either objpath or fitspath must be set.")
-        return False
-
-    if (args.no_sigma and not args.predict_sigma) is True:
-        print("If no-sigma is set, you must set predict-sigma.")
         return False
 
     return True
@@ -669,12 +648,6 @@ if __name__ == "__main__":
         help="Save the data used in the training (default: False).",
     )
     parser.add_argument(
-        "--predict-sigma",
-        action="store_true",
-        default=False,
-        help="Predict the sigma (default: False).",
-    )
-    parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables CUDA training."
     )
     parser.add_argument(
@@ -684,20 +657,6 @@ if __name__ == "__main__":
         help="Run deterministically",
     )
     parser.add_argument(
-        "--no-translate",
-        action="store_true",
-        default=False,
-        help="Turn off translation prediction in the network \
-                        (default: false)",
-    )
-    parser.add_argument(
-        "--no-data-translate",
-        action="store_true",
-        default=False,
-        help="Turn off translation in the data \
-                            loader(default: false)",
-    )
-    parser.add_argument(
         "--normalise-basic",
         action="store_true",
         default=False,
@@ -705,13 +664,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
-    )
-    parser.add_argument(
-        "--cont",
-        default=False,
-        action="store_true",
-        help="Continuous sigma values",
-        required=False,
     )
     parser.add_argument(
         "--log-interval",
@@ -732,13 +684,6 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we augment the data with XY rotation (default False)?",
-        required=False,
-    )
-    parser.add_argument(
-        "--no-sigma",
-        default=False,
-        action="store_true",
-        help="Do we use an input sigma profile or do we ignore it?",
         required=False,
     )
     parser.add_argument(

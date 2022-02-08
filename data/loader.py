@@ -93,13 +93,13 @@ class ItemSimulated(LoaderItem):
         """
         return (self.points, self.mask, self.angle_axis, self.trans, self.sigma)
 
-def sort_models(tup): 
-    # reverse = None (Sorts in Ascending order) 
-    # key is set to sort using second element of 
-    # sublist lambda has been used 
-    tup.sort(key = lambda x: x[1]) 
-    return tup 
-  
+
+def sort_models(tup):
+    # reverse = None (Sorts in Ascending order)
+    # key is set to sort using second element of
+    # sublist lambda has been used
+    tup.sort(key=lambda x: x[1])
+    return tup
 
 
 class Loader(object):
@@ -115,9 +115,7 @@ class Loader(object):
         spawn=1.0,
         max_spawn=1,
         sigma=1.25,
-        translate=True,
         max_trans=0.1,
-        rotate=True,
         augment=False,
         num_augment=10
     ):
@@ -169,7 +167,6 @@ class Loader(object):
         self.class_indices = [0, 0, 0, 0, 0]
 
         # How far do we translate?
-        self.translate = translate
         self.max_trans = max_trans
 
         # The rotations and translations we shall use
@@ -196,7 +193,6 @@ class Loader(object):
         self.dropout = dropout
         self.wobble = wobble
         self.spawn = spawn
-        self.rotate = rotate
         self._max_spawn = max_spawn  # Potentially, how many more flurophores
 
         # Load each model into our points 
@@ -208,10 +204,10 @@ class Loader(object):
 
             if "obj" in modelpath:
                 self.gt_points.cat(load_obj(objpath=modelpath))
-            
+
             elif "ply" in modelpath:
                 self.gt_points.cat(load_ply(modelpath))
-            
+
             self.class_indices[classidx] = self.gt_points.size
 
         self._create_basic()
@@ -379,14 +375,12 @@ class Loader(object):
         # Ensure an equal spread of data around all the rotation space so
         # we don't miss any particular areas
         rot = VecRot(0, 0, 0)
-        if self.rotate:
-            rot.random()
+        rot.random()
 
         for idx in tqdm(range(self.size), desc="Generating base data"):
-            if self.translate:
-                tx = ((random.random() * 2.0) - 1.0) * self.max_trans
-                ty = ((random.random() * 2.0) - 1.0) * self.max_trans
-                tz = ((random.random() * 2.0) - 1.0) * self.max_trans
+            tx = ((random.random() * 2.0) - 1.0) * self.max_trans
+            ty = ((random.random() * 2.0) - 1.0) * self.max_trans
+            tz = ((random.random() * 2.0) - 1.0) * self.max_trans
 
             points, dropout_mask = self._create_points_mask()
 
@@ -452,8 +446,7 @@ class Loader(object):
 
                 self.available.append(idx)
 
-            if self.rotate:
-                rot.random()
+            rot.random()
 
     def load(self, filename: str):
         """

@@ -14,10 +14,11 @@ import math
 import torch
 import random
 from pyquaternion import Quaternion
+from globals import DTYPE
 
 
 class Point:
-    """ A point for rendering."""
+    """A point for rendering."""
 
     def __init__(self, x: float, y: float, z: float, w=1.0):
         """
@@ -56,11 +57,13 @@ class Point:
         return [self.x, self.y, self.z, self.w]
 
     def __str__(self):
-        return str(self.x) + ", " + str(self.y) + ", " + str(self.z) + ", " + str(self.w)
+        return (
+            str(self.x) + ", " + str(self.y) + ", " + str(self.z) + ", " + str(self.w)
+        )
 
 
 class PointsTen:
-    """ Points, but in their tensor form for pytorch."""
+    """Points, but in their tensor form for pytorch."""
 
     # TODO - maybe just extend torch.Tensor?
 
@@ -85,7 +88,6 @@ class PointsTen:
     def __len__(self) -> int:
         return int(self.data.shape[0])
 
-
     def from_tensor(self, t: torch.Tensor):
         """
         Create our PointsTen from a tensor.
@@ -105,7 +107,6 @@ class PointsTen:
         """
         self.data = t
         return self
-
 
 
 class Points:
@@ -240,7 +241,7 @@ class Points:
         """
         for point in points:
             self.data.append(point)
-        
+
         self.size = len(self.data)
         return self
 
@@ -265,7 +266,7 @@ class Points:
             ttp.append([p.z])
             ttp.append([p.w])
             tp.append(ttp)
-        tten = torch.tensor(tp, dtype=torch.float32, device=device)
+        tten = torch.tensor(tp, dtype=DTYPE, device=device)
         return PointsTen().from_tensor(tten)
 
     def __next__(self) -> Point:
@@ -285,7 +286,7 @@ class Points:
 
     def __getitem__(self, idx) -> Point:
         return self.data[idx]
-    
+
     def __str__(self):
         s = ""
         for p in self.data:
@@ -308,13 +309,58 @@ def pointsten_to_points(pt: PointsTen) -> Points:
     """
     vertices = []
     for i in range(pt.data.shape[0]):
-        vertices.append((float(pt.data[i][0][0]),
-                            float(pt.data[i][1][0]),
-                            float(pt.data[i][2][0]), 1.0))
+        vertices.append(
+            (
+                float(pt.data[i][0][0]),
+                float(pt.data[i][1][0]),
+                float(pt.data[i][2][0]),
+                1.0,
+            )
+        )
 
     points = Points().from_iterable(vertices)
     return points
 
+
+class StretchTen:
+    """
+    Our stretch parameters for the Worm model. Stretch in X and Z directions.
+    """
+
+    def __init__(self, sx: torch.Tensor, sz: torch.Tensor):
+        self.sx = sx
+        self.sz = sz
+
+
+class Stretch:
+    """
+    Our stretch parameters for the Worm model. Stretch in X and Z directions.
+    """
+
+    def __init__(self, sx: float, sz: float):
+        self.sx = sx
+        self.sz = sz
+
+    def to_ten(self, device="cpu") -> StretchTen:
+        """
+        Convert to a StretchTen class - a collection of two tensors.
+        Useful in our pytorch neural net.
+
+        Parameters
+        ----------
+        device : str
+            What device will the result be bound to? CUDA / cpu?
+            Default - cpu.
+
+        Returns
+        -------
+        StretchTen
+
+        """
+        return StretchTen(
+            torch.tensor([self.sx], dtype=DTYPE, device=device),
+            torch.tensor([self.sz], dtype=DTYPE, device=device),
+        )
 
 
 class VecRot:
@@ -435,10 +481,12 @@ class VecRot:
         t = 1 - c
         x, y, z = self.get_normalised()
 
-        m = [[t * x * x + c, t * x * y - z * s, t * x * z + y * s, 0],
-             [t * x * y + z * s, t * y * y + c, t * y * z - x * s, 0],
-             [t * x * z - y * s, t * y * z + x * s, t * z * z + c, 0],
-             [0, 0, 0, 1]]
+        m = [
+            [t * x * x + c, t * x * y - z * s, t * x * z + y * s, 0],
+            [t * x * y + z * s, t * y * y + c, t * y * z - x * s, 0],
+            [t * x * z - y * s, t * y * z + x * s, t * z * z + c, 0],
+            [0, 0, 0, 1],
+        ]
 
         return m
 
@@ -464,7 +512,7 @@ class VecRot:
                 m[0][0] * p.x + m[0][1] * p.y + m[0][2] * p.z + m[0][3] * p.w,
                 m[1][0] * p.x + m[1][1] * p.y + m[1][2] * p.z + m[1][3] * p.w,
                 m[2][0] * p.x + m[2][1] * p.y + m[2][2] * p.z + m[2][3] * p.w,
-                p.w
+                p.w,
             )
             new_points.append(np)
         return new_points
@@ -486,9 +534,9 @@ class VecRot:
 
         """
         return VecRotTen(
-            torch.tensor([self.x], dtype=torch.float32, device=device),
-            torch.tensor([self.y], dtype=torch.float32, device=device),
-            torch.tensor([self.z], dtype=torch.float32, device=device),
+            torch.tensor([self.x], dtype=DTYPE, device=device),
+            torch.tensor([self.y], dtype=DTYPE, device=device),
+            torch.tensor([self.z], dtype=DTYPE, device=device),
         )
 
     def __str__(self):
@@ -529,7 +577,7 @@ class VecRot:
 
 
 class VecRotTen:
-    """ The pytorch Tensor version of the VecRot class."""
+    """The pytorch Tensor version of the VecRot class."""
 
     def __init__(self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
         """
@@ -637,7 +685,7 @@ class VecRotTen:
 
 
 class Trans:
-    """ Translation as two floats."""
+    """Translation as two floats."""
 
     def __init__(self, x: float, y: float, z: float):
         """
@@ -671,14 +719,14 @@ class Trans:
         TransTen
         """
         return TransTen(
-            torch.tensor([self.x], dtype=torch.float32, device=device),
-            torch.tensor([self.y], dtype=torch.float32, device=device),
-            torch.tensor([self.z], dtype=torch.float32, device=device),
+            torch.tensor([self.x], dtype=DTYPE, device=device),
+            torch.tensor([self.y], dtype=DTYPE, device=device),
+            torch.tensor([self.z], dtype=DTYPE, device=device),
         )
 
 
 class TransTen:
-    """ Translation as tensors."""
+    """Translation as tensors."""
 
     def __init__(self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
         """
@@ -700,7 +748,7 @@ class TransTen:
 
 
 class Mask:
-    """ Our mask for points."""
+    """Our mask for points."""
 
     def __init__(self, m: list):
         """
@@ -740,7 +788,7 @@ class Mask:
         tm = []
         for m in self.mask:
             tm.append([m])
-        return torch.tensor(tm, dtype=torch.float32, device=device)
+        return torch.tensor(tm, dtype=DTYPE, device=device)
 
 
 def mat_to_rod(mat: torch.Tensor) -> tuple:
@@ -809,7 +857,7 @@ def gen_perspective(
             [0, 0, far / (far - near), -NF / (far - near)],
             [0, 0, 1, 0],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         requires_grad=False,
         device=device,
     )
@@ -833,7 +881,7 @@ def gen_identity(device="cpu") -> torch.Tensor:
     """
     return torch.tensor(
         [[1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 1.0, 0], [0, 0, 0, 1.0]],
-        dtype=torch.float32,
+        dtype=DTYPE,
         requires_grad=False,
         device=device,
     )
@@ -855,17 +903,13 @@ def gen_scale(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
     torch.Tensor
        A 4x4 scale matrix.
     """
-    x_mask = x.new_tensor(
-        [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x_mask = x.new_tensor([[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y_mask = y.new_tensor([[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    z_mask = z.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
+    z_mask = z.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
 
-    base = x.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0],
-                         [0, 0, 0, 0], [0, 0, 0, 1]])
+    base = x.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]])
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
@@ -878,7 +922,7 @@ def gen_scale(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
 
 def gen_ndc(size, device="cpu"):
     """
-    Generate a normalised-device-coordinates to screen matrix. 
+    Generate a normalised-device-coordinates to screen matrix.
     This is slightly altered to give a 3D voxel grid of 3 different
     dimensions. We assume that the y dimenison is 1.0 and work from that.
     With the default setting, that means X is quite wide and Z quite shallow.
@@ -905,11 +949,11 @@ def gen_ndc(size, device="cpu"):
     ms = torch.tensor(
         [
             [size[2] / (2.0 * aspectxy), 0, 0, size[2] / (2.0 * aspectxy) + sx],
-            [0, -size[1] / 2.0, 0, size[1] / 2.0  + sy],
+            [0, -size[1] / 2.0, 0, size[1] / 2.0 + sy],
             [0, 0, size[0] / (2.0 * aspectzy), size[0] / (2.0 * aspectzy) + sz],
             [0, 0, 0, 1],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         device=device,
         requires_grad=False,
     )
@@ -941,17 +985,13 @@ def gen_trans(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Tensor
     """
     assert x.device == y.device == z.device
 
-    x_mask = x.new_tensor(
-        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x_mask = x.new_tensor([[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y_mask = y.new_tensor([[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    z_mask = z.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
+    z_mask = z.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
 
-    base = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0],
-                         [0, 0, 1, 0], [0, 0, 0, 1]])
+    base = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
@@ -982,14 +1022,11 @@ def gen_trans_xy(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
     assert x.device == y.device
 
-    x_mask = x.new_tensor(
-        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x_mask = x.new_tensor([[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y_mask = y.new_tensor([[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    base = x.new_tensor([[1, 0, 0, 0], [0, 1, 0, 0],
-                         [0, 0, 1, 0], [0, 0, 0, 1]])
+    base = x.new_tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
@@ -1020,17 +1057,13 @@ def gen_trans_xyz(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Te
     """
     assert x.device == y.device
 
-    x_mask = x.new_tensor(
-        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x_mask = x.new_tensor([[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
-    
-    z_mask = z.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
+    y_mask = y.new_tensor([[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    base = x.new_tensor([[1, 0, 0, 0], [0, 1, 0, 0],
-                         [0, 0, 1, 0], [0, 0, 0, 1]])
+    z_mask = z.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
+
+    base = x.new_tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
@@ -1088,35 +1121,25 @@ def gen_mat_from_rod(a: VecRotTen) -> torch.Tensor:
     z1 = torch.add(torch.mul(torch.mul(z, y), m_cos), torch.mul(x, t_sin))
     z2 = torch.add(torch.mul(torch.pow(z, 2), m_cos), t_cos)
 
-    x0_mask = xr.new_tensor(
-        [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x0_mask = xr.new_tensor([[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    x1_mask = xr.new_tensor(
-        [[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x1_mask = xr.new_tensor([[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    x2_mask = xr.new_tensor(
-        [[0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    x2_mask = xr.new_tensor([[0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y0_mask = yr.new_tensor(
-        [[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y0_mask = yr.new_tensor([[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y1_mask = yr.new_tensor(
-        [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y1_mask = yr.new_tensor([[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    y2_mask = yr.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    y2_mask = yr.new_tensor([[0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-    z0_mask = zr.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]])
+    z0_mask = zr.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]])
 
-    z1_mask = zr.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]])
+    z1_mask = zr.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]])
 
-    z2_mask = zr.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
+    z2_mask = zr.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
 
-    base = zr.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]])
+    base = zr.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]])
 
     rot_x = (
         x0.expand_as(x0_mask) * x0_mask
@@ -1216,12 +1239,12 @@ def angles_to_axis(x_rot: float, y_rot: float, z_rot: float) -> VecRot:
     """
     # https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToAngle/
 
-    c1 = math.cos(y_rot/2)
-    s1 = math.sin(y_rot/2)
-    c2 = math.cos(z_rot/2)
-    s2 = math.sin(z_rot/2)
-    c3 = math.cos(x_rot/2)
-    s3 = math.sin(x_rot/2)
+    c1 = math.cos(y_rot / 2)
+    s1 = math.sin(y_rot / 2)
+    c2 = math.cos(z_rot / 2)
+    s2 = math.sin(z_rot / 2)
+    c3 = math.cos(x_rot / 2)
+    s3 = math.sin(x_rot / 2)
     c1c2 = c1 * c2
     s1s2 = s1 * s2
     w = c1c2 * c3 - s1s2 * s3
@@ -1231,7 +1254,7 @@ def angles_to_axis(x_rot: float, y_rot: float, z_rot: float) -> VecRot:
     angle = 2 * math.acos(w)
     norm = x * x + y * y + z * z
 
-    if (norm < 0.001):
+    if norm < 0.001:
         x = 1
         y = z = 0
     else:

@@ -61,7 +61,7 @@ class Model(object):
             self.points.append(tpoints.get_points())     
 
     def load_models(self, paths):
-        order = 0
+        order = 1
         for path in paths:
             if 'ply' in path:
                 self.add_points(load_ply(path), order)
