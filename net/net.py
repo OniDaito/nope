@@ -74,7 +74,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, max_trans=1.0):
+    def __init__(self, splat: Splat, max_trans=0.25):
         """
         Initialise the model.
 
@@ -106,19 +106,18 @@ class Net(nn.Module):
         self.batch4b = nn.BatchNorm3d(64)
         self.batch5 = nn.BatchNorm3d(128)
         self.batch5b = nn.BatchNorm3d(128)
-        self.batch6 = nn.BatchNorm3d(128)
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
         self.conv1 = nn.Conv3d(1, 8, 5, stride=2, padding=2)
-        csize = conv_size(splat.size, padding=2, stride=2)
+        csize = conv_size(splat.size, kernel_size=5, padding=2, stride=2)
 
         self.conv2 = nn.Conv3d(8, 16, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv2b = nn.Conv3d(16, 16, 2, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=1, kernel_size=2)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
         self.conv3 = nn.Conv3d(16, 32, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
@@ -136,14 +135,12 @@ class Net(nn.Module):
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
         self.conv5b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
-        csize = conv_size(csize, padding=1, stride=1, kernel_size=2)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(1024, 512)
-        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 512, 256)
+        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
         self.params = 7
-
-        self.fc2 = nn.Linear(512, self.params)
+        self.fc2 = nn.Linear(256, self.params)
 
         self.max_shift = max_trans
         self.splat = splat
@@ -252,7 +249,6 @@ class Net(nn.Module):
 
             sp = nn.Softplus(threshold=12)
             final_sigma = torch.clamp(sp(rot[6]), max=14)
-       
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 

@@ -25,6 +25,7 @@ from data.sets import DataSet
 from data.loader import ItemType
 from util.math import VecRotTen
 from globals import DTYPE
+import torch.nn.functional as F
 
 
 class ItemBuffer(object):
@@ -41,7 +42,7 @@ class ItemRendered(ItemBuffer):
         rendered: torch.Tensor,
         rotation: VecRotTen,
         translation,
-        sigma: torch.Tensor
+        sigma: torch.Tensor,
     ):
         super().__init__(rendered)
         self.rotation = rotation
@@ -201,11 +202,9 @@ class Buffer(BaseBuffer):
                     mask = datum.mask.to_ten(device=self.device)
                     r = datum.angle_axis.to_ten(device=self.device)
                     t = datum.trans.to_ten(device=self.device)
-               
+
                     sigma = torch.tensor((datum.sigma), dtype=DTYPE, device=self.device)
-                    rendered = self.renderer.render(
-                        points, r, t, mask, sigma
-                    )
+                    rendered = self.renderer.render(points, r, t, mask, sigma)
 
                 self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
 
@@ -287,14 +286,33 @@ class BufferImage(BaseBuffer):
                 datum = self.set.__next__()
                 assert datum.type == ItemType.FITSIMAGE
                 with fits.open(datum.path) as w:
-                    hdul = w[0].data.byteswap().newbyteorder()
+                    #hdul = w[0].data.astype('float32')
+                    hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                     timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
 
-                    assert (
+                    if not (
                         timg.shape[0] == self.image_dim[0]
                         and timg.shape[1] == self.image_dim[1]
                         and timg.shape[2] == self.image_dim[2]
-                    )
+                    ):
+                        # Pad out the image if it's not the same size
+                        diffZ = self.image_dim[0] - timg.shape[0]
+                        diffY = self.image_dim[1] - timg.shape[1]
+                        diffX = self.image_dim[2] - timg.shape[2]
+
+                        timg = F.pad(
+                            timg,
+                            [
+                                diffX // 2,
+                                diffX - diffX // 2,
+                                diffY // 2,
+                                diffY - diffY // 2,
+                                diffZ // 2,
+                                diffZ - diffZ // 2,
+                            ],
+                        )
+
+                    assert(torch.sum(timg) > 0)
                     # Append as a tuple to match buffers
                     self.buffer.append(ItemBuffer(timg))
 

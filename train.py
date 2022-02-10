@@ -18,12 +18,6 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
-from torch.profiler import (
-    profile,
-    record_function,
-    ProfilerActivity,
-    tensorboard_trace_handler,
-)
 import numpy as np
 import math
 import random
@@ -130,7 +124,7 @@ def test(
         # turn off grads because for some reason, memory goes BOOM!
         with torch.no_grad():
             # Offsets is essentially empty for the test buffer.
-            target = ddata.datum
+            target = ddata.data
             target_shaped = normaliser.normalise(
                 target.reshape(
                     args.batch_size,
@@ -180,13 +174,12 @@ def test(
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
 
-                if args.predict_sigma:
-                    ps = model._final.shape[1] - 1
-                    sp = nn.Softplus(threshold=12)
-                    sig_out = torch.tensor(
-                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
-                    )
-                    S.watch(sig_out, "sigma_out_test")
+                ps = model._final.shape[1] - 1
+                sp = nn.Softplus(threshold=12)
+                sig_out = torch.tensor(
+                    [torch.clamp(sp(x[ps]), max=14) for x in model._final]
+                )
+                S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
             S.watch(loss, "loss_test")  # loss saved for the last batch only.
@@ -293,95 +286,86 @@ def train(
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
 
-    with torch.profiler.profile(
-        schedule=torch.profiler.schedule(wait=2, warmup=2, active=6, repeat=1),
-        on_trace_ready=tensorboard_trace_handler(args.savedir + "/log"),
-        with_stack=True,
-        record_shapes=True,
-        profile_memory=True,
-    ) as profiler:
+   
 
-        # Begin the epochs and training
-        for epoch in range(args.epochs):
+    # Begin the epochs and training
+    for epoch in range(args.epochs):
+        data_loader.set_sigma(sigma)
+
+        # Now begin proper
+        print("Starting Epoch", epoch)
+        for batch_idx, ddata in enumerate(batcher):
+            target = ddata.data
+            optimiser.zero_grad()
+
+            # Shape and normalise the input batch
+            target_shaped = normaliser.normalise(
+                target.reshape(
+                    args.batch_size,
+                    1,
+                    args.image_depth,
+                    args.image_height,
+                    args.image_width,
+                )
+            )
+
+            output = normaliser.normalise(model(target_shaped, points))
+
+            loss = calculate_loss(target_shaped, output)
+            loss.backward()
+            lossy = loss.item()
+            optimiser.step()
+
+            # If we are using continuous sigma, lets update it here
+            sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
             data_loader.set_sigma(sigma)
 
-            # Now begin proper
-            print("Starting Epoch", epoch)
-            for batch_idx, ddata in enumerate(batcher):
-                target = ddata.target
-                optimiser.zero_grad()
+            # We save here because we want our first step to be untrained
+            # network
+            if batch_idx % args.log_interval == 0:
+                # Add watches here
+                S.watch(lossy, "loss_train")
+                # Temporary ignore of images in the DB
+                # S.watch(target[0], "target")
+                # S.watch(output[0], "output")
+                S.watch(sigma, "sigma_in")
 
-                # Shape and normalise the input batch
-                target_shaped = normaliser.normalise(
-                    target.reshape(
-                        args.batch_size,
-                        1,
-                        args.image_depth,
-                        args.image_height,
-                        args.image_width,
+                print(
+                    "Train Epoch: \
+                    {} [{}/{} ({:.0f}%)]\tLoss Main: {:.6f}".format(
+                        epoch,
+                        batch_idx * args.batch_size,
+                        buffer_train.set.size,
+                        100.0 * batch_idx * args.batch_size / buffer_train.set.size,
+                        lossy,
                     )
                 )
 
-                output = normaliser.normalise(model(target_shaped, points))
-
-                loss = calculate_loss(target_shaped, output)
-                loss.backward()
-                lossy = loss.item()
-                optimiser.step()
-
-                # If we are using continuous sigma, lets update it here
-                sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
-                data_loader.set_sigma(sigma)
-
-                # We save here because we want our first step to be untrained
-                # network
-                if batch_idx % args.log_interval == 0:
-                    # Add watches here
-                    S.watch(lossy, "loss_train")
-                    # Temporary ignore of images in the DB
-                    # S.watch(target[0], "target")
-                    # S.watch(output[0], "output")
-                    if args.predict_sigma:
-                        S.watch(sigma, "sigma_in")
-
-                    print(
-                        "Train Epoch: \
-                        {} [{}/{} ({:.0f}%)]\tLoss Main: {:.6f}".format(
-                            epoch,
-                            batch_idx * args.batch_size,
-                            buffer_train.set.size,
-                            100.0 * batch_idx * args.batch_size / buffer_train.set.size,
-                            lossy,
-                        )
+                if args.save_stats:
+                    test(args, model, buffer_test, epoch, batch_idx, points, sigma)
+                    S.save_points(points, args.savedir, epoch, batch_idx)
+                    S.update(
+                        epoch, buffer_train.set.size, args.batch_size, batch_idx
                     )
 
-                    if args.save_stats:
-                        test(args, model, buffer_test, epoch, batch_idx, points, sigma)
-                        S.save_points(points, args.savedir, epoch, batch_idx)
-                        S.update(
-                            epoch, buffer_train.set.size, args.batch_size, batch_idx
-                        )
+            if batch_idx % args.save_interval == 0:
+                print("saving checkpoint", batch_idx, epoch)
+                save_model(model, args.savedir + "/model.tar")
 
-                if batch_idx % args.save_interval == 0:
-                    print("saving checkpoint", batch_idx, epoch)
-                    save_model(model, args.savedir + "/model.tar")
+                save_checkpoint(
+                    model,
+                    points,
+                    optimiser,
+                    epoch,
+                    batch_idx,
+                    loss,
+                    sigma,
+                    args,
+                    args.savedir,
+                    args.savename,
+                )
 
-                    save_checkpoint(
-                        model,
-                        points,
-                        optimiser,
-                        epoch,
-                        batch_idx,
-                        loss,
-                        sigma,
-                        args,
-                        args.savedir,
-                        args.savename,
-                    )
-
-                profiler.step()
-
-            buffer_train.set.shuffle()
+        buffer_train.set.shuffle()
 
     # Save a final points file once training is complete
     S.save_points(points, args.savedir, epoch, batch_idx)
@@ -448,8 +432,7 @@ def init(args, device):
     if args.fitspath != "":
         data_loader = ImageLoader(
             size=args.train_size + args.test_size,
-            image_path=args.fitspath,
-            sigma=sigma_lookup[0],
+            image_path=args.fitspath
         )
 
         set_train = DataSet(
@@ -516,14 +499,6 @@ def init(args, device):
         max_trans=args.max_trans
     ).to(device)
 
-    # Load our init points as well, if we are loading the same data
-    # file later on - this is only in initialisation
-    # if os.path.isfile(args.savedir + "/points.csv"):
-    #    points_model.from_csv(args.savedir + "/points.csv")
-    # TODO - uncomment and implement
-    # else:
-    #    points_model.save_csv(args.savedir + "/points.csv")
-
     # Save the training data to disk so we can interrogate it later
     if args.save_train_data:
         set_train.save(args.savedir + "/train_set.pickle")
@@ -535,10 +510,7 @@ def init(args, device):
     optimiser = optim.AdamW(variables, lr=args.lr)
     print("Starting new model")
 
-    # with profile(activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU], profile_memory=True, record_shapes=True) as prof:
-    #    with record_function("model_inference"):
     # Now start the training proper
-
     train(
         args,
         device,
@@ -551,12 +523,8 @@ def init(args, device):
         optimiser
     )
 
-    # print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
-    # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
-    # prof.export_chrome_trace("trace.json")
-    # print(prof.key_averages(group_by_stack_n=5).table(sort_by='self_cpu_time_total', row_limit=5))
-
-    points_model.from_ten(points)
+    # TODO - out for now
+    #points_model.from_ten(points)
     save_model(model, args.savedir + "/model.tar")
 
 
@@ -575,17 +543,6 @@ def check_args(args) -> bool:
     bool
         Is args valid?
     """
-    if len(args.startobjs) > 0 and args.numpoints:
-        print("startobjs and numpoints cannot both be set.")
-        return False
-
-    if args.objpath and args.fitspath:
-        print("objpath and fitspath cannot both be set.")
-        return False
-
-    if not args.objpath and not args.fitspath:
-        print("Either objpath or fitspath must be set.")
-        return False
 
     return True
 

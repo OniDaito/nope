@@ -12,7 +12,7 @@ supports iteration, typically a buffer.
 """
 
 import torch
-from data.buffer import ItemRendered
+from data.buffer import ItemRendered, ItemBuffer
 from globals import DTYPE
 
 
@@ -34,11 +34,14 @@ class Batch(object):
         self.translations = []
         self.sigmas = []
 
-    def add_datum(self, datum: ItemRendered):
+    def add_datum(self, datum: ItemBuffer):
         self.data[self._idx][0] = datum.datum
-        self.rotations.append(datum.rotation)
-        self.translations.append(datum.translation)
-        self.sigmas.append(datum.sigma)
+
+        if isinstance(datum, ItemRendered): 
+            self.rotations.append(datum.rotation)
+            self.translations.append(datum.translation)
+            self.sigmas.append(datum.sigma)
+
         self._idx += 1
 
 

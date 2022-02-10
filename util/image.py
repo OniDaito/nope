@@ -9,6 +9,7 @@ util_image.py - save out our images, load images and
 normalise fits images.
 """
 
+from globals import DTYPE
 import torch
 import numpy as np
 from PIL import Image
@@ -29,7 +30,7 @@ def save_image(img_tensor, name="ten.jpg"):
     None
     """
     if hasattr(img_tensor, "detach"):
-        img_tensor = img_tensor.detach().cpu()
+        img_tensor = img_tensor.detach().to(dtype=torch.float32).cpu()
         mm = torch.max(img_tensor)
         img_tensor = img_tensor / mm
         img = Image.fromarray(np.uint8(img_tensor.numpy() * 255))
@@ -60,7 +61,7 @@ def save_fits(img_tensor, name="ten.fits"):
     from astropy.io import fits
 
     if hasattr(img_tensor, "detach"):
-        img_tensor = np.flipud(img_tensor.detach().cpu().numpy())
+        img_tensor = np.flipud(img_tensor.detach().to(dtype=torch.float32).cpu().numpy())
     hdu = fits.PrimaryHDU(img_tensor)
     hdul = fits.HDUList([hdu])
     hdul.writeto(name)
@@ -167,10 +168,12 @@ class NormaliseTorch(object):
         torch.Tensor
             The normalised batch tensor
         """
-        intensity = torch.sum(img_batch, [2, 3])
+        intensity = torch.sum(img_batch.to(dtype=torch.float32), [2, 3, 4])
         intensity = self.factor / intensity
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1, 1)
         dimg = img_batch * intensity
+        assert(torch.sum(dimg) > 0)
+        dimg = dimg.to(dtype=DTYPE)
         return dimg
 
 

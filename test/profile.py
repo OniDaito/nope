@@ -21,6 +21,7 @@ from data.buffer import Buffer
 from data.batcher import Batcher
 from net.renderer import Splat
 from util.image import NormaliseTorch
+from torch.cuda.amp import GradScaler, autocast
 import torch.optim as optim
 from torch.profiler import (
     profile,
@@ -39,7 +40,7 @@ class Profile(unittest.TestCase):
     def test_train(self):
         device = torch.device("cuda")
         train_set_size = 4000
-        image_depth = 32
+        image_depth = 64
         image_height = 128
         image_width = 128
         batch_size = 2
@@ -52,8 +53,10 @@ class Profile(unittest.TestCase):
         image_size = (image_depth, image_height, image_width)
         splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=image_size)
         splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=image_size)
-        objpaths = ["./objs/ASIL_small.obj", "./objs/ASIR_small.obj", "./objs/ASJL_small.obj", "./objs/ASJR_small.obj"]
+        objpaths = ["./objs/ASIL_simple.obj", "./objs/ASIR_simple.obj", "./objs/ASJL_simple.obj", "./objs/ASJR_simple.obj"]
         objindices = [1, 2, 3, 4]
+        #objpaths = ["./objs/bunny_large.obj"]
+        #objindices = [1]
         objs = list(zip(objpaths, objindices))
 
         # Use the default worm objects
@@ -86,7 +89,7 @@ class Profile(unittest.TestCase):
         variables.append({"params": points.data})
         optimiser = optim.AdamW(variables, lr=0.004)
         print("Starting training new model")
-        # scaler = GradScaler()
+        scaler = GradScaler()
         normaliser = NormaliseTorch()
 
         # We'd like a batch rather than a similar issue.
@@ -96,31 +99,39 @@ class Profile(unittest.TestCase):
         #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True, record_shapes=True) as prof:
 
         for step, ddata in enumerate(batcher):
-            target = ddata[0]
+            target = ddata.data
             optimiser.zero_grad()
 
-            # Shape and normalise the input batch
-            target_shaped = normaliser.normalise(
-                target.reshape(
-                    batch_size,
-                    1,
-                    image_depth,
-                    image_height,
-                    image_width,
+            with autocast():
+                # Shape and normalise the input batch
+                target_shaped = normaliser.normalise(
+                    target.reshape(
+                        batch_size,
+                        1,
+                        image_depth,
+                        image_height,
+                        image_width,
+                    )
                 )
-            )
-            output = normaliser.normalise(model(target_shaped, points))
-            assert output.dtype is DTYPE
-            final_out = output[0].squeeze()
-            final_in = target_shaped[0].squeeze()
-            
+                output = normaliser.normalise(model(target_shaped, points))
+                assert output.dtype is DTYPE
+                final_out = output[0].squeeze()
+                final_in = target_shaped[0].squeeze()
+                loss = calculate_loss(target_shaped, output)
+
+            scaler.scale(loss).backward()
+
+            # scaler.step() first unscales the gradients of the optimizer's assigned params.
+            # If these gradients do not contain infs or NaNs, optimizer.step() is then called,
+            # otherwise, optimizer.step() is skipped.
+            scaler.step(optimiser)
+
+            # Updates the scale for next iteration.
+            scaler.update()
+
             save_image(torch.sum(final_in, dim=0), name="test_profile_in_" + str(step) + ".jpg")
             save_image(torch.sum(final_out, dim=0), name="test_profile_out_" + str(step) + ".jpg")
-
-            loss = calculate_loss(target_shaped, output)
-            assert loss.dtype is DTYPE
-            loss.backward()
-            optimiser.step()
+           
             print("Step", step)
             print("Loss", loss)
     

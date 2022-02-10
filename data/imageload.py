@@ -70,37 +70,26 @@ class ImageLoader(Loader):
 
                 if any(x in filename for x in img_extentions):
                     # We need to check there are no duffers in this list
-                    fpath = os.path.join(path, filename)
-                    pbar.update(1)
-                    img_files.append(fpath)
-                    self.available.append(idx)
-                    idx += 1
+                    if "_layered" in filename:
+                        fpath = os.path.join(path, filename)
+                        pbar.update(1)
+                        img_files.append(fpath)
+                        self.available.append(idx)
+                        idx += 1
 
-                    if len(img_files) >= max_num:
-                        pbar.close()
-                        return img_files
+                        if len(img_files) >= max_num:
+                            pbar.close()
+                            return img_files
 
         pbar.close()
+        print("Found", len(img_files), "fits files for training set.")
         return img_files
 
     def _create_data(self):
         """
-        We look for directories fitting the path ceppath + "/<sigma>/"
-        Couple of choices here
         Internal function.
         """
         path = self.base_image_path
-
-        if self.sigma is not None:
-
-            path = self.base_image_path + "/" + str(int(self.sigma)).zfill(2)
-            path1 = self.base_image_path + "/" + str(int(self.sigma))
-            path2 = self.base_image_path + "/" + str(self.sigma)
-
-            if os.path.exists(path1):
-                path = path1
-            if os.path.exists(path2):
-                path = path2
 
         print("Creating data from", path)
         self.filenames = self._find_files(path, self.size)

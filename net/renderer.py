@@ -11,6 +11,8 @@ functions. Based on the DirectX graphics pipeline.
 
 import torch
 import math
+import torch.nn.functional as F
+
 from util.math import (
     gen_mat_from_rod,
     gen_trans_xyz,
@@ -21,6 +23,7 @@ from util.math import (
     VecRotTen,
     TransTen,
     PointsTen,
+    make_gaussian_kernel
 )
 from globals import DTYPE
 
@@ -69,9 +72,9 @@ class Splat(object):
         self.trans_mat = gen_identity(device=self.device)
         self.rot_mat = gen_identity(device=self.device)
         self.scale_mat = gen_scale(
-            torch.tensor([0.5], device=self.device),
-            torch.tensor([0.5], device=self.device),
-            torch.tensor([0.5], device=self.device),
+            torch.tensor([0.5], dtype=DTYPE, device=self.device),
+            torch.tensor([0.5], dtype=DTYPE, device=self.device),
+            torch.tensor([0.5], dtype=DTYPE, device=self.device),
         )
 
         self.ndc = gen_ndc(self.size, device=self.device)
@@ -200,7 +203,7 @@ class Splat(object):
         # self.w_mask = self.w_mask.to(device)
         return self
 
-    def render(
+    def render_exp(
         self,
         points: PointsTen,
         rot: VecRotTen,
@@ -234,7 +237,6 @@ class Splat(object):
         """
 
         assert mask is not None
-
         if self.xs.shape[0] != points.data.shape[0]:
             self._gen_mats(points)
 
@@ -269,5 +271,93 @@ class Splat(object):
                 dim=0,
             )
         )
+
+        return model
+
+    def render(
+        self,
+        points: PointsTen,
+        rot: VecRotTen,
+        trans: TransTen,
+        mask: torch.Tensor,
+        sigma=1.25,
+    ):
+        """
+        Generate an image. We take the points, a mask, an output filename
+        and 2 classed that represent the rodrigues vector and the translation.
+        Sigma refers to the spread of the gaussian. The mask is used to ignore
+        some of the points if necessary.
+
+        Parameters
+        ----------
+        points : PointsTen
+            The points we are predicting.
+        rot : VecRotTen
+            The rotation as a vector
+        trans : TransTen
+            The translation of the points.
+        mask : torch.Tensor
+            A series of 1.0s or 0.0s to mask out certain points.
+        sigma : float
+            The sigma value to render our image with.
+
+        Returns
+        -------
+        None
+
+        """
+
+        assert mask is not None
+        
+        gkern = make_gaussian_kernel(sigma).to(dtype=DTYPE, device=self.device)
+
+        if self.xs.shape[0] != points.data.shape[0]:
+            self._gen_mats(points)
+
+        # This section causes upto a 20% hit on the GPU perf
+        self.rot_mat = gen_mat_from_rod(rot)
+        self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
+        self.rot_mat = self.rot_mat.to(dtype=DTYPE)
+        self.modelview = torch.matmul(
+            torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat
+        )
+        o = torch.matmul(self.modelview, points.data)
+        s = torch.matmul(self.ndc, o)
+        px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
+        py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
+        pz = s.narrow(1, 2, 1).reshape(len(points), 1, 1, 1)
+        ex = px.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ey = py.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ez = pz.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+
+        # Expand the mask out so we can cancel out the contribution
+        # of some of the points
+        mask = mask.reshape(mask.shape[0], 1, 1, 1)
+        mask = mask.expand(mask.shape[0], ey.shape[1], ey.shape[2], ey.shape[3])
+        
+        # New method using a kernel. We create a 3D cube with the points in it, then convolve
+        # No sub pixel accuracy due to rounding but hey
+        rounded = torch.round(s).squeeze().narrow(1, 0, 3)
+        px = rounded.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
+        py = rounded.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
+        pz = rounded.narrow(1, 2, 1).reshape(len(points), 1, 1, 1)
+        ex = px.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ey = py.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ez = pz.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+
+        pcube_x = (ex == self.xs)
+        pcube_y = (ey == self.ys)
+        pcube_z = (ez == self.zs)
+
+        pcube = torch.logical_and(pcube_x, pcube_y)
+        pcube = torch.logical_and(pcube, pcube_z).to(dtype=DTYPE).sum(dim=0)
+        vol_in = pcube.reshape(1, 1, *pcube.shape)
+
+        k3d = torch.einsum('i,j,k->ijk', gkern, gkern, gkern)
+        k3d = k3d / k3d.sum()
+        k3d = k3d.to(dtype=DTYPE)
+        #print("Shapes", pcube.shape, vol_in.shape, k3d.shape)
+        vol_3d = F.conv3d(vol_in, k3d.reshape(1, 1, *k3d.shape), stride=1, padding=len(gkern) // 2)
+        model = vol_3d.reshape(self.size)
 
         return model

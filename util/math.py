@@ -1267,3 +1267,15 @@ def angles_to_axis(x_rot: float, y_rot: float, z_rot: float) -> VecRot:
     y *= angle
     z *= angle
     return VecRot(x, y, z)
+
+
+# https://stackoverflow.com/questions/67633879/implementing-a-3d-gaussian-blur-using-separable-2d-convolutions-in-pytorch
+def make_gaussian_kernel(sigma):
+    ks = int(sigma * 5)
+    if ks % 2 == 0:
+        ks += 1
+    ts = torch.linspace(-ks // 2, ks // 2 + 1, ks).to(device=sigma.device)
+    gauss = torch.exp((-(ts / sigma)**2 / 2))
+    kernel = gauss / gauss.sum()
+
+    return kernel
