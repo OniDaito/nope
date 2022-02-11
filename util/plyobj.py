@@ -14,7 +14,7 @@ overlap here and there.
 from util.math import Points, Point
 
 
-def save_ply(path, vertices):
+def save_ply(path, vertices, indices=[]):
     """
     Save a basic ascii ply file that just has vertices.
 
@@ -24,12 +24,14 @@ def save_ply(path, vertices):
         A path and filename for the save file
     vertices : list
         A list of items, each of which has at least 3 float elements.
-
+    indices : list
+        A list of group numbers for every vertex
     Returns
     -------
     None
 
     """
+    palette = [(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 
     with open(path, "w") as f:
         f.write("ply\n")
@@ -39,15 +41,25 @@ def save_ply(path, vertices):
         f.write("property float x\n")
         f.write("property float y\n")
         f.write("property float z\n")
+        f.write("property uchar red\n")              
+        f.write("property uchar green\n")
+        f.write("property uchar blue\n")
         f.write("element face 0\n")
         f.write("property list uchar int vertex_indices\n")
         f.write("end_header\n")
 
-        for v in vertices:
+        for i, v in enumerate(vertices):
             f.write(str(round(v[0], 4)) + " ")
             f.write(str(round(v[1], 4)) + " ")
-            f.write(str(round(v[2], 4)) + "\n")
-
+            f.write(str(round(v[2], 4)) + " ")
+            if len(indices) > 0:
+                c = indices[i]
+                assert(c < len(palette))
+                f.write(str(palette[c][0]) + " ")
+                f.write(str(palette[c][1]) + " ")
+                f.write(str(palette[c][2]) + "\n")
+            else:
+                f.write(" 0 0 0\n")
 
 def load_ply(path) -> Points:
     """

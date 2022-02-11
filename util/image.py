@@ -124,7 +124,7 @@ class NormaliseNull(object):
 # less elegant than a closure :/
 
 
-class NormaliseTorch(object):
+class NormaliseBasic(object):
     """
     Normalise using the total intensity and a scaling factor.
 
@@ -177,145 +177,57 @@ class NormaliseTorch(object):
         return dimg
 
 
-class NormaliseMinMax(object):
-    """ Normalise using min and max values."""
+class NormaliseWorm(object):
+    """
+    Normalise using the total intensity and a scaling factor.
+    First off, drop everything down by the noise value.
 
-    def __init__(
-        self,
-        min_intensity: float,
-        max_intensity: float,
-        scalar=1.0,
-        image_size=(128, 128),
-    ):
+    Our simulator does no balancing so we perform a scaling
+    and a sort-of-normalising to get things into the right
+    range. This matches the same output as our network.
+    """
+
+    def __init__(self, limit=260):
         """
-        Create the normaliser.
+        Create the normaliser with a scaling factor.
+        The factor starts at 100, based on a 60 x 60
+        image. We scale this based on the image size
+        going up.
 
         Parameters
         ----------
-        min_intensity : float
-            The minimum intensity.
-        max_intensity : float
-            The Maximum intensity.
-        scalar : float
-            An option to scale the result.
-            Default - 1.0.
-        image_size : tuple
-            The image / tensor size we are expecting. We don't rely on the
-            shape() function on tensor as we might be operating on a batch.
-            Default - (128, 128)
+        None
 
         Returns
         -------
-        self
+        NormaliseTorch
         """
-        self.set(min_intensity, max_intensity, image_size)
+        self.factor = 100
+        self.limit = 260
 
-    def set(self, min_intensity, max_intensity, scalar=1.0, image_size=(128, 128)):
+    def normalise(self, img_batch: torch.Tensor):
         """
-        Set the normaliser's parameters.
+        Create the normaliser with a scaling factor.
 
         Parameters
         ----------
-        min_intensity : float
-            The minimum intensity.
-        max_intensity : float
-            The Maximum intensity.
-        scalar : float
-            An option to scale the result.
-            Default - 1.0.
-        image_size : tuple
-            The image / tensor size we are expecting. We don't rely on the
-            shape() function on tensor as we might be operating on a batch.
-            Default - (128, 128)
+        img_batch : torch.Tensor
+            The batch of images we want to normalise
+            We normalise each image in the batch on it's own
+            as oppose to across the entire batch.
+            The shape must be in the pytorch shape of
+            (batch_size, 1, h, w)
 
         Returns
         -------
         torch.Tensor
-            The normalised tensor
+            The normalised batch tensor
         """
-        self.min_intensity = min_intensity
-        self.max_intensity = max_intensity
-        self.image_size = image_size
-        self.scalar = 1.0
-
-    def normalise(self, img: torch.Tensor):
-        """
-        Given a min max, scale each pixel so the entire count sums to 1. We can
-        then scale it up with the scalar parameter.
-
-        Parameters
-        ----------
-        img : torch.Tensor
-            The tensor to normalise
-
-        Returns
-        -------
-        torch.Tensor
-            The normalised tensor
-        """
-        di = (torch.sum(img) - self.min_intensity) / (
-            self.max_intensity - self.min_intensity
-        )
-        dimg = (
-            img * (1.0 / (self.image_size[0] * self.image_size[1]) * di) * self.scalar
-        )
+        subbed = torch.clamp(torch.sub(img_batch, self.limit), min=0.0)
+        intensity = torch.sum(subbed.to(dtype=torch.float32), [2, 3, 4])
+        intensity = self.factor / intensity
+        intensity = intensity.reshape(subbed.shape[0], 1, 1, 1, 1)
+        dimg = subbed * intensity
+        assert(torch.sum(dimg) > 0)
+        dimg = dimg.to(dtype=DTYPE)
         return dimg
-
-
-class NormaliseMaxIntense(object):
-    """Normalise using the maximum summed intensity from a number of
-    images rather than the single, highest value."""
-
-    def __init__(self, max_intensity: float, scalar=1.0):
-        """
-        Create the normaliser.
-
-        Parameters
-        ----------
-        max_intensity : float
-            The maximum intensity to use.
-        scalar : float
-            An optional scalar (default - 1.0).
-
-        Returns
-        -------
-        self
-        """
-        self.set(max_intensity, scalar)
-
-    def set(self, max_intensity: float, scalar=1.0):
-        """
-        Set the normaliser params
-
-        Parameters
-        ----------
-        max_intensity : float
-            The maximum intensity to use.
-        scalar : float
-            An optional scalar (default - 1.0).
-        image_size : tuple
-            The size of the images we are expecting in x,y pixels.
-            Default - (128, 128).
-
-        Returns
-        -------
-        self
-        """
-        self.max_intensity = max_intensity
-        self.scalar = scalar
-
-    def normalise(self, img):
-        """
-        Perform the normalisation.
-
-        Parameters
-        ----------
-        img : torch.Tensor
-            The image / tensor to normalisation.
-
-        Returns
-        -------
-        torch.Tensor
-            The normalised tensor.
-        """
-        return img / self.max_intensity * self.scalar

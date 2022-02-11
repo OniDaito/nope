@@ -18,7 +18,8 @@ import json
 import redis
 import psycopg2
 import os
-from util.math import PointsTen, VecRot, VecRotTen
+from net.model import Model
+from util.math import VecRot, VecRotTen
 
 
 class Stats(object):
@@ -190,7 +191,7 @@ will be recorded."
         try:
             self._conv(obj, name, epoch, step, idx)
         except Exception:
-             if not self._error_printed:
+            if not self._error_printed:
                 print("No database to store statistic.")
                 self._error_printed = True
 
@@ -239,31 +240,20 @@ will be recorded."
         )
 
     def save_points(
-        self, points: PointsTen, savedir: str, epoch: int, step: int, ply=False
+        self, points: Model, savedir: str, epoch: int, step: int, ply=False
     ):
         """Save the points as either an obj or ply file."""
         if not os.path.exists(savedir + "/objs"):
             os.makedirs(savedir + "/objs/")
-        
+
         if not os.path.exists(savedir + "/plys"):
             os.makedirs(savedir + "/plys/")
 
-        path_obj = (
-            savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)
-        )
         path_ply = (
-            savedir + "/plys/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)
+            savedir + "/plys/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5) + ".ply"
         )
 
-        vertices = []
-        tv = points.data.clone().cpu().detach().numpy()
-        for v in tv:
-            vertices.append((v[0][0], v[1][0], v[2][0], 1.0))
-
-        if ply:
-            save_ply(path_ply + ".ply", vertices)
-        else:
-            save_obj(path_obj + ".obj", vertices)
+        points.save_ply(path=path_ply)
 
 
 # This is the one and only logging object. It's global and we have helper

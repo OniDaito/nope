@@ -13,46 +13,41 @@ from typing import Tuple
 import torch
 import random
 from util.math import Points, PointsTen
-from util.plyobj import load_obj, load_ply
+from util.plyobj import load_obj, load_ply, save_ply
 
 
 class Model(object):
+    '''
+    A basic class that holds points, PointsTen and a set
+    of indices that group these points. This forms the
+    structure we are trying to come up with that represents
+    our worm neurons. The points are classified 0 to 3 depending
+    on which neuron they belong to.
+    '''
 
     def __init__(self):
-        self.points = []
+        self.points = Points()
         self.indices = []
 
     def add_points(self, points: Points, idp: int):
-        x = [p[0] for p in self.points]
-  
-        if idp in x:
-            raise ValueError("Cannot save points with id of", idp)
+        for p in points:
+            self.points.append(p)
+        
+        for _ in range(len(points)):
+            self.indices.append(idp)
 
-        self.points.append((idp, points))
-        self._sort_points()
-        self.indices = []
-        idx = 0
-
-        for tp in self.points:
-            self.indices.append(idx)
-            idx += len(tp[1])
-
-    def _sort_points(self):
-        self.points.sort(key=lambda x: x[0])
-
-    def get_ten(self, device="cpu") -> Tuple[PointsTen, list]:
-        tpoints = Points()
-
-        for tp in self.points:
-            tpoints.cat(tp[1])
-
-        return (tpoints.to_ten(device=device), self.indices)
+    def make_ten(self, device="cpu") -> Tuple[PointsTen, list]:
+        ''' 
+        Create the tensor we will optimise now we've added all the points.
+        '''
+        self.data = self.points.to_ten(device=device)
+        return (self.data, self.indices)
 
     def from_ten(self, points: PointsTen):
         # In case it's just the single model
         if len(self.indices) == 1:
             self.points.append(points.get_points())   
-            return  
+            return 
 
         tensors = points.data.split(self.indices)
         for t in tensors:
@@ -71,6 +66,14 @@ class Model(object):
                 order += 1
             else:
                 raise ValueError("Path must be to a ply or obj.")
+
+    def save_ply(self, path="model.ply"):
+        vertices = []
+        tv = self.data.data.clone().cpu().detach().numpy()
+
+        for v in tv:
+            vertices.append((v[0][0], v[1][0], v[2][0], 1.0))
+        save_ply(path, vertices, self.indices)
 
     def from_csv(self, csv_path):
         raise ValueError("Not implemented yet")

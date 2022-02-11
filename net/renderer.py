@@ -15,10 +15,10 @@ import torch.nn.functional as F
 
 from util.math import (
     gen_mat_from_rod,
+    gen_ortho,
     gen_trans_xyz,
     gen_identity,
-    gen_perspective,
-    gen_ndc,
+    gen_screen,
     gen_scale,
     VecRotTen,
     TransTen,
@@ -38,21 +38,14 @@ class Splat(object):
     # TODO - we should really check where requires grad is actually needed.
 
     def __init__(
-        self, fov, aspect, near, far, size=(25, 150, 320), device=torch.device("cpu")
+        self, size=(25, 150, 320), device=torch.device("cpu")
     ):
         """
         Initialise the renderer.
 
         Parameters
         ----------
-        fov : float
-            The field of view.
-        aspect : float
-            The aspect ratio.
-        near : float
-            The near plane.
-        far : float
-            The far plane.
+     
         size : tuple
             The size of the rendered image, in pixels  z, y and x dimensions (default: (25, 150, 320))
 
@@ -64,11 +57,12 @@ class Splat(object):
         """
 
         self.size = size
-        self.near = near
-        self.far = far
+        # self.near = near
+        # self.far = far
         self.device = device
-        self.perspective = gen_perspective(fov, aspect, near, far)
-        self.modelview = gen_identity(device=self.device)
+        # self.perspective = gen_perspective(fov, aspect, near, far)
+        self.ortho = gen_ortho(self.size, device)
+        # self.modelview = gen_identity(device=self.device)
         self.trans_mat = gen_identity(device=self.device)
         self.rot_mat = gen_identity(device=self.device)
         self.scale_mat = gen_scale(
@@ -79,10 +73,10 @@ class Splat(object):
         self.z_correct_mat = gen_scale(
             torch.tensor([1.0], dtype=DTYPE, device=self.device),
             torch.tensor([1.0], dtype=DTYPE, device=self.device),
-            torch.tensor([0.2], dtype=DTYPE, device=self.device),
+            torch.tensor([size[0] / size[1]], dtype=DTYPE, device=self.device),
         )
 
-        self.ndc = gen_ndc(self.size, device=self.device)
+        self.ndc = gen_screen(self.size, device=self.device)
         self.xs = torch.tensor([0], dtype=DTYPE)
         self.ys = torch.tensor([0], dtype=DTYPE)
         self.zs = torch.tensor([0], dtype=DTYPE)
@@ -196,12 +190,13 @@ class Splat(object):
 
         """
         self.device = torch.device(device)
-        self.perspective = self.perspective.to(device)
-        self.modelview = self.modelview.to(device)
+        # self.perspective = self.perspective.to(device)
+        # self.modelview = self.modelview.to(device)
         self.trans_mat = self.trans_mat.to(device)
         self.rot_mat = self.rot_mat.to(device)
         self.scale_mat = self.scale_mat.to(device)
         self.ndc = self.ndc.to(device)
+        self.ortho = self.ortho.to(device)
         self.xs = self.xs.to(device)
         self.ys = self.ys.to(device)
         self.zs = self.zs.to(device)
@@ -249,12 +244,12 @@ class Splat(object):
         # This section causes upto a 20% hit on the GPU perf
         self.rot_mat = gen_mat_from_rod(rot)
         self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
-        self.modelview = torch.matmul(
-            torch.matmul(torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat),
-            self.z_correct_mat
-        )
-        o = torch.matmul(self.modelview, points.data)
-        s = torch.matmul(self.ndc, o)
+        p0 = torch.matmul(self.scale_mat, points.data)
+        p1 = torch.matmul(self.rot_mat, p0)
+        p2 = torch.matmul(self.trans_mat, p1)
+        p3 = torch.matmul(self.z_correct_mat, p2)
+        p4 = torch.matmul(self.ortho, p3)
+        s = torch.matmul(self.ndc, p4)
         px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
         py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
         pz = s.narrow(1, 2, 1).reshape(len(points), 1, 1, 1)

@@ -25,8 +25,8 @@ class Renderer(unittest.TestCase):
     def test_render(self):
         use_cuda = False
         device = torch.device("cuda" if use_cuda else "cpu")
-        base_points = PointsTen(device=device)
-        base_points.from_points(plyobj.load_obj("./objs/bunny_large.obj"))
+        points = plyobj.load_obj("./objs/bunny_large.obj")
+        base_points = points.to_ten(device=device)
 
         mask = []
         for _ in range(len(base_points)):
@@ -37,13 +37,13 @@ class Renderer(unittest.TestCase):
         yt = torch.tensor([0.0], dtype=torch.float32)
         zt = torch.tensor([0.0], dtype=torch.float32)
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, size=(16, 32, 64), device=device)
+        splat = Splat(size=(32, 128, 128), device=device)
 
         r = VecRot(0, 0, 0).to_ten(device=device)
         r.random()
         t = TransTen(xt, yt, zt)
 
-        result = splat.render(base_points, r, t, mask, sigma=1.2)
+        result = splat.render(base_points, r, t, mask, sigma=2.2)
         self.assertTrue(torch.sum(result) > 200)
         save_image(torch.sum(result.detach(), dim=0), name="test_renderer_0.jpg")
 

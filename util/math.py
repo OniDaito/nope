@@ -920,12 +920,53 @@ def gen_scale(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
     return tm
 
 
-def gen_ndc(size, device="cpu"):
+def gen_ortho(size, device="cpu"):
     """
-    Generate a normalised-device-coordinates to screen matrix.
-    This is slightly altered to give a 3D voxel grid of 3 different
-    dimensions. We assume that the y dimenison is 1.0 and work from that.
-    With the default setting, that means X is quite wide and Z quite shallow.
+    Generate the orthographic Projection based on the aspect ratios
+    from size. Y axis is considered the 1.0 axis.
+
+    This effectively converts our euclidean into normalised device coords.
+
+    Parameters
+    ----------
+    size : tuple
+        A tuple of float or int, depth x height x width in pixels for the
+        final image size.
+    device : str
+        The device to hold this matrix - cuda / cpu.
+        Default - cpu.
+
+    Returns
+    -------
+    torch.Tensor
+       A 4x4 orthographic matrix.
+    """
+
+    aspectxy = size[2] / size[1]
+    aspectzy = size[0] / size[1]
+    a = 1.0 / aspectxy
+    b = 1.0
+    c = -1.0 / aspectzy
+
+    ms = torch.tensor(
+        [
+            [a, 0, 0, 0],
+            [0, b, 0, 0],
+            [0, 0, c, 0],
+            [0, 0, 0, 1],
+        ],
+        dtype=DTYPE,
+        device=device,
+        requires_grad=False,
+    )
+
+    return ms
+
+
+def gen_screen(size, device="cpu"):
+    """
+    Generate the orthographic Projection based on the aspect ratios
+    from size.
 
     Parameters
     ----------
@@ -941,16 +982,12 @@ def gen_ndc(size, device="cpu"):
     torch.Tensor
        A 4x4 ndc-to-screen matrix.
     """
-    aspectxy = size[2] / size[1]
-    aspectzy = size[0] / size[1]
-    sx = (aspectxy - 1) * size[1] / 2.0
-    sy = 0
-    sz = 0
+
     ms = torch.tensor(
         [
-            [size[2] / (2.0 * aspectxy), 0, 0, size[2] / (2.0 * aspectxy) + sx],
-            [0, -size[1] / 2.0, 0, size[1] / 2.0 + sy],
-            [0, 0, size[0] / (2.0 * aspectzy), size[0] / (2.0 * aspectzy) + sz],
+            [size[2] / 2.0, 0, 0, size[2] / 2.0],
+            [0, -size[1] / 2.0, 0, size[1] / 2.0],
+            [0, 0, size[0] / 2.0, size[0] / 2.0],
             [0, 0, 0, 1],
         ],
         dtype=DTYPE,

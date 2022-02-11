@@ -24,7 +24,7 @@ import random
 import argparse
 import os
 import sys
-from util.points import load_points, save_points, init_points
+from util.points import init_points
 from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
 from data.imageload import ImageLoader
@@ -35,7 +35,7 @@ from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
 from net.model import Model
-from util.image import NormaliseNull, NormaliseTorch
+from util.image import NormaliseNull, NormaliseBasic, NormaliseWorm
 from util.math import PointsTen
 
 
@@ -68,7 +68,7 @@ def test(
     buffer_test: Buffer,
     epoch: int,
     step: int,
-    points: PointsTen,
+    points_model: Model,
     sigma: float,
     write_fits=False,
 ):
@@ -104,10 +104,12 @@ def test(
     model.eval()
 
     # Which normalisation are we using?
-    normaliser = NormaliseNull()
+    normaliser_out = NormaliseNull()
+    normaliser_in = NormaliseNull()
 
     if args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser_out = NormaliseBasic()
+        normaliser_in = NormaliseWorm()
 
     image_choice = random.randrange(0, args.batch_size)
     # We'd like a batch rather than a similar issue.
@@ -125,7 +127,7 @@ def test(
         with torch.no_grad():
             # Offsets is essentially empty for the test buffer.
             target = ddata.data
-            target_shaped = normaliser.normalise(
+            target_shaped = normaliser_in.normalise(
                 target.reshape(
                     args.batch_size,
                     1,
@@ -135,7 +137,7 @@ def test(
                 )
             )
 
-            output = normaliser.normalise(model(target_shaped, points))
+            output = normaliser_out.normalise(model(target_shaped, points_model.data))
             output = output.reshape(
                 args.batch_size,
                 1,
@@ -240,7 +242,7 @@ def train(
     device,
     sigma_lookup,
     model,
-    points,
+    points_model,
     buffer_train,
     buffer_test,
     data_loader,
@@ -259,7 +261,7 @@ def train(
         The list of float values for the sigma value.
     model : nn.Module
         Our network we want to train.
-    points : PointsTen
+    points_model : Model
         The model made up of our points
     buffer_train :  Buffer
         The buffer in front of our training data.
@@ -276,17 +278,17 @@ def train(
     model.train()
 
     # Which normalisation are we using?
-    normaliser = NormaliseNull()
+    normaliser_out = NormaliseNull()
+    normaliser_in = NormaliseNull()
 
     if args.normalise_basic:
-        normaliser = NormaliseTorch()
+        normaliser_out = NormaliseBasic()
+        normaliser_in = NormaliseWorm()
 
     sigma = sigma_lookup[0]
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
-
-   
 
     # Begin the epochs and training
     for epoch in range(args.epochs):
@@ -299,7 +301,7 @@ def train(
             optimiser.zero_grad()
 
             # Shape and normalise the input batch
-            target_shaped = normaliser.normalise(
+            target_shaped = normaliser_in.normalise(
                 target.reshape(
                     args.batch_size,
                     1,
@@ -309,7 +311,7 @@ def train(
                 )
             )
 
-            output = normaliser.normalise(model(target_shaped, points))
+            output = normaliser_out.normalise(model(target_shaped, points_model.data))
 
             loss = calculate_loss(target_shaped, output)
             loss.backward()
@@ -342,8 +344,8 @@ def train(
                 )
 
                 if args.save_stats:
-                    test(args, model, buffer_test, epoch, batch_idx, points, sigma)
-                    S.save_points(points, args.savedir, epoch, batch_idx)
+                    test(args, model, buffer_test, epoch, batch_idx, points_model, sigma)
+                    S.save_points(points_model, args.savedir, epoch, batch_idx)
                     S.update(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
                     )
@@ -354,7 +356,7 @@ def train(
 
                 save_checkpoint(
                     model,
-                    points,
+                    points_model,
                     optimiser,
                     epoch,
                     batch_idx,
@@ -368,9 +370,9 @@ def train(
         buffer_train.set.shuffle()
 
     # Save a final points file once training is complete
-    S.save_points(points, args.savedir, epoch, batch_idx)
+    S.save_points(points_model, args.savedir, epoch, batch_idx)
 
-    return points
+    return points_model
 
 
 def init(args, device):
@@ -425,8 +427,8 @@ def init(args, device):
     # the gpu whereas the dataloader splat reads in differing numbers of
     # points.
     image_size = (args.image_depth, args.image_height, args.image_width)
-    splat_in = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=image_size)
-    splat_out = Splat(math.radians(90), 1.0, 1.0, 10.0, device=device, size=image_size)
+    splat_in = Splat(device=device, size=image_size)
+    splat_out = Splat(device=device, size=image_size)
 
     # Setup the dataloader - either generated from OBJ or fits
     if args.fitspath != "":
@@ -490,8 +492,8 @@ def init(args, device):
         )
         points_model.add_points(tpoints, 0)
 
-    (points, indices) = points_model.get_ten(device=device)
-    points.data.requires_grad_(requires_grad=True)
+    points_model.make_ten(device=device)
+    points_model.data.data.requires_grad_(requires_grad=True)
 
     # Create our main network
     model = Net(
@@ -506,7 +508,7 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters()})
-    variables.append({"params": points.data})
+    variables.append({"params": points_model.data.data})
     optimiser = optim.AdamW(variables, lr=args.lr)
     print("Starting new model")
 
@@ -516,7 +518,7 @@ def init(args, device):
         device,
         sigma_lookup,
         model,
-        points,
+        points_model,
         buffer_train,
         buffer_test,
         data_loader,
@@ -524,7 +526,7 @@ def init(args, device):
     )
 
     # TODO - out for now
-    #points_model.from_ten(points)
+    points_model.save_ply(args.savedir + "/last_points.ply")
     save_model(model, args.savedir + "/model.tar")
 
 
