@@ -70,6 +70,7 @@ class ItemSimulated(LoaderItem):
         -------
         self
         """
+        super().__init__()
         self.type = ItemType.SIMULATED
         self.points = points
         self.mask = mask

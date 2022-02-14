@@ -21,10 +21,10 @@ def render(p: Points, m: Mask, rot: VecRot, trans: Trans, sig: float, splat: Spl
     zr = torch.tensor([rot.z], dtype=torch.float32, device="cpu")
     xt = torch.tensor([trans.x], dtype=torch.float32, device="cpu")
     yt = torch.tensor([trans.y], dtype=torch.float32, device="cpu")
-    points = PointsTen(device="cpu")
-    points.from_points(p)
+    zt = torch.tensor([0.0], dtype=torch.float32, device="cpu")
+    points = p.to_ten(device="cpu")
     r = VecRotTen(xr, yr, zr)
-    tt = TransTen(xt, yt)
+    tt = TransTen(xt, yt, zt)
     out = splat.render(points, r, tt, mask=mask, sigma=sig)
 
     return out

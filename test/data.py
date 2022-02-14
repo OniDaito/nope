@@ -20,14 +20,14 @@ from data.buffer import Buffer, BufferImage
 from data.batcher import Batcher
 from net.renderer import Splat
 from util.render import render
-from util.image import NormaliseTorch, save_image
+from util.image import NormaliseBasic, NormaliseWorm, save_image
 
 
 class Data(unittest.TestCase):
     def test_loader(self):
         """Perform a series of tests on our DataLoader class. Eventually, we shall
         move this to a proper test suite."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(size=(64, 64, 64), device="cpu")
 
         with torch.no_grad():
             d = Loader(
@@ -50,12 +50,13 @@ class Data(unittest.TestCase):
             # We should have something rendered with intensity > 200
             # self.assertTrue(torch.sum(out) > 200)
 
-            save_image(out.cpu().detach().numpy(), "dataload_test_0.jpg")
+            final = torch.sum(out.cpu().detach(), dim=0)
+            save_image(final, "dataload_test_0.jpg")
             # save_fits(out.cpu().detach().numpy(), "dataload_test_0.fits")
 
     def test_set(self):
         """Test the set class that lives above the loader."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         # Initial setup of PyTorch
         loader = Loader(
             size=96,
@@ -111,7 +112,7 @@ class Data(unittest.TestCase):
     def test_buffer(self):
         """Test our buffer class that sits above the set."""
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(
             size=200,
             objpaths=[
@@ -176,7 +177,7 @@ class Data(unittest.TestCase):
 
     def test_batcher(self):
         """Test the batcher."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(
             size=200,
             objpaths=[
@@ -199,7 +200,7 @@ class Data(unittest.TestCase):
 
     def test_normalise(self):
         """Test the normaliser."""
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         loader = Loader(
             size=200,
             objpaths=[
@@ -212,7 +213,7 @@ class Data(unittest.TestCase):
         dataset = DataSet(SetType.TRAIN, 200, loader, deterministic=True)
         buffer = Buffer(dataset, splat, buffer_size=100, device="cpu")
         batcher = Batcher(buffer)
-        normaliser = NormaliseTorch()
+        normaliser = NormaliseBasic()
 
         for i, b in enumerate(batcher):
             target = b[0]
@@ -222,7 +223,7 @@ class Data(unittest.TestCase):
             break
 
     def test_wobble(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         random.seed(30)
         d0 = Loader(
@@ -283,7 +284,7 @@ class Data(unittest.TestCase):
         #            "dataload_wobble_test_1.jpg")
 
     def test_spawn(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             random.seed(42)
@@ -344,7 +345,7 @@ class Data(unittest.TestCase):
             #           "dataload_spawn_test_0.jpg")
 
     def test_augment(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
         d0 = Loader(
             size=20,
             objpaths=[
@@ -380,7 +381,7 @@ class Data(unittest.TestCase):
         save_image(out2.cpu().detach().numpy(), "dataload_augment_test_2.jpg")
 
     def test_all(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             random.seed(42)
@@ -424,28 +425,21 @@ class Data(unittest.TestCase):
     def test_imageloader(self):
         """Test the image loader with some FITS images."""
 
-        loader = ImageLoader(size=10, image_path="./test/images/", sigma=2.0)
-        self.assertTrue(len(loader) == 10)
-        out = loader[5].unpack()
-
-        dataset = DataSet(SetType.TRAIN, 10, loader)
-        buffer = BufferImage(dataset, buffer_size=10, device="cpu")
-        batcher = Batcher(buffer, batch_size=2)
-
-        for i, b in enumerate(batcher):
-            self.assertTrue(len(b) == 1)
-            self.assertTrue(len(b[0]) == 2)
-
+        loader = ImageLoader(size=5, image_path="./test/images/", sigma=20.0)
+        self.assertTrue(len(loader) == 5)
+        dataset = DataSet(SetType.TRAIN, 5, loader)
+        buffer = BufferImage(dataset, buffer_size=5, image_size=(25, 128, 128), blur=True, device="cpu")
         buffer.fill()
-        (out,) = buffer[0]
-        self.assertTrue(out.shape[0] == 128)
+        b = buffer.__next__()
+        final = torch.sum(b.datum.cpu().detach(), dim=0)
+        save_image(final, "dataload_test_0.jpg")
 
     def test_dropout(self):
         """Perform a series of tests on our DataLoader class. Eventually, we shall
         move this to a proper test suite."""
         from util.image import save_image
 
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         with torch.no_grad():
             d = Loader(
@@ -477,7 +471,7 @@ class Data(unittest.TestCase):
                     pm = m
 
     def test_paper(self):
-        splat = Splat(math.radians(90), 1.0, 1.0, 10.0, device="cpu")
+        splat = Splat(device="cpu")
 
         objpaths = [
             ("./objs/ASIL_small.obj", 1),

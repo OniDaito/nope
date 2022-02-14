@@ -18,9 +18,10 @@ from data.loader import Loader, LoaderItem, ItemType
 
 
 class ItemImage(LoaderItem):
-    def __init__(self, path):
+    def __init__(self, path, sigma: float):
         self.type = ItemType.FITSIMAGE
         self.path = path
+        self.sigma = sigma
 
     def unpack(self):
         return self.path
@@ -30,7 +31,7 @@ class ImageLoader(Loader):
     """A class that looks for images, saving the filepaths ready for
     use with the dataset class."""
 
-    def __init__(self, size=1000, image_path="."):
+    def __init__(self, size=1000, image_path=".", sigma=0):
         """
         Create our ImageLoader.
 
@@ -54,6 +55,7 @@ class ImageLoader(Loader):
         self.available = array.array("L")
         self.filenames = []
         self.deterministic = False
+        self.sigma = sigma
 
         self._create_data()
 
@@ -111,6 +113,9 @@ class ImageLoader(Loader):
         """
         return len(self.available)
 
+    def set_sigma(self, sigma):
+        self.sigma = sigma
+
     def __next__(self):
 
         if self.counter >= self.size:
@@ -129,4 +134,4 @@ class ImageLoader(Loader):
         return self
 
     def __getitem__(self, idx) -> LoaderItem:
-        return ItemImage(self.filenames[idx])
+        return ItemImage(self.filenames[idx], self.sigma)

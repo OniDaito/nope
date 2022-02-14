@@ -23,14 +23,17 @@ from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
-from util.math import VecRotTen
+from util.math import VecRotTen, TransTen
 from globals import DTYPE
 import torch.nn.functional as F
+import numpy as np
+import scipy.signal
 
 
 class ItemBuffer(object):
-    def __init__(self, datum: torch.Tensor):
+    def __init__(self, datum: torch.Tensor, sigma: float):
         self.datum = datum
+        self.sigma = sigma
 
     def flatten(self):
         return (self.datum,)
@@ -41,13 +44,12 @@ class ItemRendered(ItemBuffer):
         self,
         rendered: torch.Tensor,
         rotation: VecRotTen,
-        translation,
-        sigma: torch.Tensor,
+        translation: TransTen,
+        sigma: float
     ):
-        super().__init__(rendered)
+        super().__init__(rendered, sigma)
         self.rotation = rotation
         self.translation = translation
-        self.sigma = sigma
 
     def flatten(self):
         return (self.datum, self.rotation, self.sigma)
@@ -236,6 +238,7 @@ class BufferImage(BaseBuffer):
         dataset,
         image_size=(25, 150, 320),
         buffer_size=1000,
+        blur=False,
         device=torch.device("cpu"),
     ):
         """
@@ -259,6 +262,7 @@ class BufferImage(BaseBuffer):
         """
         super().__init__(dataset, buffer_size, device)
         self.image_dim = image_size
+        self.blur = blur
 
     def fill(self):
         """
@@ -312,9 +316,20 @@ class BufferImage(BaseBuffer):
                             ],
                         )
 
+                    # Perform a sigma blur? 
+                    if self.blur and datum.sigma > 1.0:
+                        # first build the smoothing kernel
+                        x = np.arange(-3, 4, 1)   # coordinate arrays -- make sure they contain 0!
+                        y = np.arange(-3, 4, 1)
+                        z = np.arange(-3, 4, 1)
+                        xx, yy, zz = np.meshgrid(x, y, z)
+                        kernel = np.exp(-(xx**2 + yy**2 + zz**2) / (2 * datum.sigma ** 2))
+                        timg = scipy.signal.convolve(timg, kernel, mode="same")
+                        timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
+
                     assert(torch.sum(timg) > 0)
                     # Append as a tuple to match buffers
-                    self.buffer.append(ItemBuffer(timg))
+                    self.buffer.append(ItemBuffer(timg, datum.sigma))
 
         except Exception as e:
             raise e

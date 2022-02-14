@@ -36,7 +36,6 @@ from net.renderer import Splat
 from net.net import Net
 from net.model import Model
 from util.image import NormaliseNull, NormaliseBasic, NormaliseWorm
-from util.math import PointsTen
 
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
