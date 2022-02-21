@@ -108,7 +108,7 @@ def test(
 
     if args.normalise_basic:
         normaliser_out = NormaliseBasic()
-        normaliser_in = NormaliseWorm()
+        normaliser_in = NormaliseBasic()  # NormaliseWorm()
 
     image_choice = random.randrange(0, args.batch_size)
     # We'd like a batch rather than a similar issue.
@@ -133,7 +133,7 @@ def test(
                     args.image_depth,
                     args.image_height,
                     args.image_width,
-                )
+                ) #, sigma
             )
 
             output = normaliser_out.normalise(model(target_shaped, points_model.data))
@@ -282,7 +282,7 @@ def train(
 
     if args.normalise_basic:
         normaliser_out = NormaliseBasic()
-        normaliser_in = NormaliseWorm()
+        normaliser_in = NormaliseBasic()  # NormaliseWorm()
 
     sigma = sigma_lookup[0]
 
@@ -307,7 +307,7 @@ def train(
                     args.image_depth,
                     args.image_height,
                     args.image_width,
-                )
+                ) #, sigma
             )
 
             output = normaliser_out.normalise(model(target_shaped, points_model.data))
@@ -445,10 +445,11 @@ def init(args, device):
             set_train,
             buffer_size=args.buffer_size,
             device=device,
+            blur=True,
             image_size=image_size,
         )
         buffer_test = BufferImage(
-            set_test, buffer_size=test_set_size, image_size=image_size, device=device
+            set_test, buffer_size=test_set_size, blur=True, image_size=image_size, device=device
         )
 
     elif args.objpath != "":

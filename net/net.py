@@ -229,16 +229,7 @@ class Net(nn.Module):
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 
-        # Check that self._mask is not none
-        # TODO - also check that it is the correct shape (actually is
-        # recreation faster than the if check?)
-        # if self._mask is None:
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
-
-        # Now take the rotations here and splat them through our last
-        # process
-        # TODO - this process is the same in dataloader so we should
-        # probably share the code better
         images = []
 
         for idx, rot in enumerate(self._final):
@@ -247,8 +238,8 @@ class Net(nn.Module):
             ty = (torch.tanh(rot[4]) * 2.0) * self.max_shift
             tz = (torch.tanh(rot[5]) * 2.0) * self.max_shift
 
-            sp = nn.Softplus(threshold=12)
-            final_sigma = torch.clamp(sp(rot[6]), max=14)
+            sp = nn.Softplus(threshold=6)
+            final_sigma = torch.clamp(sp(rot[6]), max=8)
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 

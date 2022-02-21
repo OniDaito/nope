@@ -27,7 +27,7 @@ from util.math import VecRotTen, TransTen
 from globals import DTYPE
 import torch.nn.functional as F
 import numpy as np
-import scipy.signal
+from scipy.ndimage import gaussian_filter
 
 
 class ItemBuffer(object):
@@ -316,15 +316,10 @@ class BufferImage(BaseBuffer):
                             ],
                         )
 
-                    # Perform a sigma blur? 
+                    # Perform a sigma blur?
                     if self.blur and datum.sigma > 1.0:
                         # first build the smoothing kernel
-                        x = np.arange(-3, 4, 1)   # coordinate arrays -- make sure they contain 0!
-                        y = np.arange(-3, 4, 1)
-                        z = np.arange(-3, 4, 1)
-                        xx, yy, zz = np.meshgrid(x, y, z)
-                        kernel = np.exp(-(xx**2 + yy**2 + zz**2) / (2 * datum.sigma ** 2))
-                        timg = scipy.signal.convolve(timg, kernel, mode="same")
+                        timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
                         timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
 
                     assert(torch.sum(timg) > 0)

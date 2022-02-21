@@ -20,7 +20,7 @@ from data.buffer import Buffer, BufferImage
 from data.batcher import Batcher
 from net.renderer import Splat
 from util.render import render
-from util.image import NormaliseBasic, NormaliseWorm, save_image
+from util.image import NormaliseBasic, save_image
 
 
 class Data(unittest.TestCase):
@@ -425,7 +425,7 @@ class Data(unittest.TestCase):
     def test_imageloader(self):
         """Test the image loader with some FITS images."""
 
-        loader = ImageLoader(size=5, image_path="./test/images/", sigma=20.0)
+        loader = ImageLoader(size=5, image_path="./test/images/", sigma=4.0)
         self.assertTrue(len(loader) == 5)
         dataset = DataSet(SetType.TRAIN, 5, loader)
         buffer = BufferImage(dataset, buffer_size=5, image_size=(25, 128, 128), blur=True, device="cpu")

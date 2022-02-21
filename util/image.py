@@ -168,7 +168,7 @@ class NormaliseBasic(object):
         torch.Tensor
             The normalised batch tensor
         """
-        intensity = torch.sum(img_batch.to(dtype=torch.float32), [2, 3, 4])
+        intensity = torch.clamp(torch.sum(img_batch.to(dtype=torch.float32), [2, 3, 4]), min=0.00001)
         intensity = self.factor / intensity
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1, 1)
         dimg = img_batch * intensity
@@ -187,7 +187,7 @@ class NormaliseWorm(object):
     range. This matches the same output as our network.
     """
 
-    def __init__(self, limit=260):
+    def __init__(self, limit=300):
         """
         Create the normaliser with a scaling factor.
         The factor starts at 100, based on a 60 x 60
@@ -203,9 +203,9 @@ class NormaliseWorm(object):
         NormaliseTorch
         """
         self.factor = 100
-        self.limit = 260
+        self.limit = limit
 
-    def normalise(self, img_batch: torch.Tensor):
+    def normalise(self, img_batch: torch.Tensor, sigma=1.0):
         """
         Create the normaliser with a scaling factor.
 
@@ -223,8 +223,11 @@ class NormaliseWorm(object):
         torch.Tensor
             The normalised batch tensor
         """
+        if (sigma < 0):
+            sigma = 1.0
         subbed = torch.clamp(torch.sub(img_batch, self.limit), min=0.0)
-        intensity = torch.sum(subbed.to(dtype=torch.float32), [2, 3, 4])
+        assert(torch.sum(subbed) > 0)
+        intensity = torch.clamp(torch.sum(subbed.to(dtype=torch.float32), [2, 3, 4]), min=0.00001)
         intensity = self.factor / intensity
         intensity = intensity.reshape(subbed.shape[0], 1, 1, 1, 1)
         dimg = subbed * intensity
