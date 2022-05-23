@@ -84,8 +84,6 @@ class Net(nn.Module):
             The renderer splat.
         predict_translate : bool
             Do we predict the translation (default: False).
-        predict_sigma : bool
-            Do we predict the sigma as well (default: False).
         max_trans : float
             The scalar attached to the translation (default: 0.1).
 
@@ -139,8 +137,9 @@ class Net(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
-        self.params = 7
+        self.params = 6
         self.fc2 = nn.Linear(256, self.params)
+        self.sigma = 1.8
 
         self.max_shift = max_trans
         self.splat = splat
@@ -177,6 +176,9 @@ class Net(nn.Module):
         rval = self.layers[self._lidx]
         self._lidx += 1
         return rval
+
+    def set_sigma(self, sigma: float):
+        self.sigma = sigma
 
     def to(self, device):
         super(Net, self).to(device)
@@ -238,7 +240,7 @@ class Net(nn.Module):
             tz = rot[5] * self.max_shift
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = torch.clamp(sp(rot[6]), max=8)
+            final_sigma = sp(rot[6])
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 

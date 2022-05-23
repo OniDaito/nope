@@ -115,6 +115,7 @@ def test(
     batcher = Batcher(buffer_test, batch_size=args.batch_size)
     rots_in = []  # Save rots in for stats
     rots_out = []  # Collect all rotations out
+    model.set_sigma(sigma)
 
     if args.objpath != "":
         # Assume we are simulating so we have rots to save
@@ -320,6 +321,7 @@ def train(
             # If we are using continuous sigma, lets update it here
             sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
             data_loader.set_sigma(sigma)
+            model.set_sigma(sigma)
 
             # We save here because we want our first step to be untrained
             # network
