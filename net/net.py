@@ -233,12 +233,11 @@ class Net(nn.Module):
         images = []
 
         for idx, rot in enumerate(self._final):
+            tx = rot[3] * self.max_shift
+            ty = rot[4] * self.max_shift
+            tz = rot[5] * self.max_shift
 
-            tx = (torch.tanh(rot[3]) * 2.0) * self.max_shift
-            ty = (torch.tanh(rot[4]) * 2.0) * self.max_shift
-            tz = (torch.tanh(rot[5]) * 2.0) * self.max_shift
-
-            sp = nn.Softplus(threshold=6)
+            sp = nn.Softplus(threshold=12)
             final_sigma = torch.clamp(sp(rot[6]), max=8)
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
