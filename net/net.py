@@ -240,7 +240,7 @@ class Net(nn.Module):
             tz = rot[5] * self.max_shift
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = sp(rot[6])
+            final_sigma = self.sigma # sp(rot[6])
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 
