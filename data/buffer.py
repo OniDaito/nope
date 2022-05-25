@@ -28,6 +28,7 @@ from globals import DTYPE
 import torch.nn.functional as F
 import numpy as np
 from scipy.ndimage import gaussian_filter
+import torchvision.transforms.functional as V
 
 
 class ItemBuffer(object):
@@ -198,6 +199,7 @@ class Buffer(BaseBuffer):
             for i in range(0, min(self.buffer_size, self.set.remaining())):
                 # Here is where we render and place into the buffer
                 datum = self.set.__next__()
+
                 if self.renderer is not None:
                     assert datum.type == ItemType.SIMULATED
                     points = datum.points.to_ten(device=self.device)
@@ -227,6 +229,33 @@ class Buffer(BaseBuffer):
         tuple
         """
         return self.renderer.size
+
+def resize_image(image, size):
+
+    new_image = image.detach().clone()
+
+    for d in range(0,3):
+
+         # Pad out the image if it's not as big?
+        if size[d] > image.shape[d]:
+
+            diff = size[d] - image.shape[d]
+            padding = [0, 0, 0, 0, 0, 0]
+            padding[d * 2] = diff // 2
+            padding[d * 2 + 1] = diff - diff // 2
+
+            new_image = F.pad(
+                image,
+                padding,
+            )
+
+        # Scale down the image.
+        elif size[d] < image.shape[d]:
+            new_size = [image.shape[0], image.shape[1], image.shape[2]]
+            new_size[d] = size[d]
+            V.resize(new_image, new_size)
+             
+    return new_image
 
 
 class BufferImage(BaseBuffer):
@@ -299,23 +328,8 @@ class BufferImage(BaseBuffer):
                         and timg.shape[1] == self.image_dim[1]
                         and timg.shape[2] == self.image_dim[2]
                     ):
-                        # Pad out the image if it's not the same size
-                        diffZ = self.image_dim[0] - timg.shape[0]
-                        diffY = self.image_dim[1] - timg.shape[1]
-                        diffX = self.image_dim[2] - timg.shape[2]
 
-                        timg = F.pad(
-                            timg,
-                            [
-                                diffX // 2,
-                                diffX - diffX // 2,
-                                diffY // 2,
-                                diffY - diffY // 2,
-                                diffZ // 2,
-                                diffZ - diffZ // 2,
-                            ],
-                        )
-
+                        timg = resize_image(timg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
                     # Perform a sigma blur?
                     if self.blur and datum.sigma > 1.0:
                         # first build the smoothing kernel
