@@ -376,9 +376,9 @@ class Loader(object):
         # Ensure an equal spread of data around all the rotation space so
         # we don't miss any particular areas
         rot = VecRot(0, 0, 0)
-        rot.random()
 
         for idx in tqdm(range(self.size), desc="Generating base data"):
+            rot.random()
             tx = ((random.random() * 2.0) - 1.0) * self.max_trans
             ty = ((random.random() * 2.0) - 1.0) * self.max_trans
             tz = ((random.random() * 2.0) - 1.0) * self.max_trans
@@ -446,8 +446,6 @@ class Loader(object):
                 del dropout_mask[:]
 
                 self.available.append(idx)
-
-            rot.random()
 
     def load(self, filename: str):
         """
