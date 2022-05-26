@@ -29,7 +29,7 @@ from globals import DTYPE
 import torch.nn.functional as F
 import numpy as np
 from scipy.ndimage import gaussian_filter
-import torchvision.transforms.functional as V
+from torchvision import transforms
 
 
 class ItemBuffer(object):
@@ -252,9 +252,10 @@ def resize_image(image, size):
 
         # Scale down the image.
         elif size[d] < image.shape[d]:
-            new_size = [image.shape[0], image.shape[1], image.shape[2]]
+            new_size = (image.shape[0], image.shape[1], image.shape[2])
             new_size[d] = size[d]
-            V.resize(new_image, new_size)
+            sizer = transforms.resize(new_size)
+            new_image = sizer(image)
              
     return new_image
 
