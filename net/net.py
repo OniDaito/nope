@@ -104,6 +104,9 @@ class Net(nn.Module):
         self.batch4b = nn.BatchNorm3d(64)
         self.batch5 = nn.BatchNorm3d(128)
         self.batch5b = nn.BatchNorm3d(128)
+        self.batch6 = nn.BatchNorm3d(256)
+        self.batch6b = nn.BatchNorm3d(256)
+
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
@@ -134,9 +137,15 @@ class Net(nn.Module):
 
         self.conv5b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
+
+        self.conv6 = nn.Conv3d(128, 256, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
+
+        self.conv6b = nn.Conv3d(256, 256, 2, stride=2, padding=1)
+        csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
+        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 256, 256)
         self.params = 7
         self.fc2 = nn.Linear(256, self.params)
         self.sigma = 1.8
