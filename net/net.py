@@ -127,9 +127,8 @@ class Net(nn.Module):
         self.conv4b = nn.Conv3d(64, 64, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        
         # Fully connected layers
-        self.fc1 = nn.Linear(6400, 256)
+        self.fc1 = nn.Linear(15552, 256)
         self.params = 7
         self.fc2 = nn.Linear(256, self.params)
         self.sigma = 1.8
