@@ -252,7 +252,7 @@ def resize_image(image, size):
 
         # Scale down the image.
         elif size[d] < image.shape[d]:
-            new_size = (image.shape[0], image.shape[1], image.shape[2])
+            new_size = [image.shape[0], image.shape[1], image.shape[2]]
             new_size[d] = size[d]
             sizer = transforms.resize(new_size)
             new_image = sizer(image)
