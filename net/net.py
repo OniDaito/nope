@@ -137,7 +137,7 @@ class Net(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
-        self.params = 6
+        self.params = 7
         self.fc2 = nn.Linear(256, self.params)
         self.sigma = 1.8
 
@@ -162,9 +162,9 @@ class Net(nn.Module):
         ]
 
         # Specific weight and bias initialisation
-        for layer in self.layers:
-            torch.nn.init.xavier_uniform_(layer.weight)
-            layer.bias.data.fill_(random.random() * 0.001)
+        #for layer in self.layers:
+        #    torch.nn.init.xavier_uniform_(layer.weight)
+        #    layer.bias.data.fill_(random.random() * 0.001)
 
     def __iter__(self):
         return iter(self.layers)
@@ -233,15 +233,14 @@ class Net(nn.Module):
 
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
         images = []
-        boost = 1.2
 
         for idx, rot in enumerate(self._final):
-            tx = torch.tanh(rot[3]) * self.max_shift * boost  # Make a little bigger so we can get to the top end a little easier
-            ty = torch.tanh(rot[4]) * self.max_shift * boost
-            tz = torch.tanh(rot[5]) * self.max_shift * boost
+            tx = rot[3]
+            ty = rot[4]
+            tz = rot[5]
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = self.sigma # sp(rot[6])
+            final_sigma = sp(rot[6])
             r = VecRotTen(rot[0], rot[1], rot[2])
             t = TransTen(tx, ty, tz)
 

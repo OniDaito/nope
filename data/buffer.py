@@ -250,12 +250,9 @@ def resize_image(image, size):
                 padding,
             )
 
-        # Scale down the image.
+        # Scale down the image - can't do this in 3D easily, sadly!
         elif size[d] < image.shape[d]:
-            new_size = [image.shape[0], image.shape[1], image.shape[2]]
-            new_size[d] = size[d]
-            sizer = transforms.Resize(new_size)
-            new_image = sizer(image)
+            assert(False)
              
     return new_image
 
