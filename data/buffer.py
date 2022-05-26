@@ -18,6 +18,7 @@ Fill up and render           [ids reserved]       Hold data for rendering
 
 """
 
+import imp
 import torch
 from astropy.io import fits
 from tqdm import tqdm
@@ -323,12 +324,12 @@ class BufferImage(BaseBuffer):
                     hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                     timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
 
+    
                     if not (
                         timg.shape[0] == self.image_dim[0]
                         and timg.shape[1] == self.image_dim[1]
                         and timg.shape[2] == self.image_dim[2]
                     ):
-
                         timg = resize_image(timg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
                     # Perform a sigma blur?
                     if self.blur and datum.sigma > 1.0:
@@ -341,6 +342,9 @@ class BufferImage(BaseBuffer):
                     self.buffer.append(ItemBuffer(timg, datum.sigma))
 
         except Exception as e:
+            import traceback
+            import sys
+            traceback.print_exc(file=sys.stdout)
             raise e
 
     def image_size(self):

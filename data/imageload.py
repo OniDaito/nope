@@ -74,10 +74,17 @@ class ImageLoader(Loader):
                     # We need to check there are no duffers in this list
                     if "_layered" in filename:
                         fpath = os.path.join(path, filename)
-                        pbar.update(1)
-                        img_files.append(fpath)
-                        self.available.append(idx)
-                        idx += 1
+
+                        with fits.open(fpath) as w:
+                            hdul = w[0].data.byteswap().newbyteorder().astype('float32')
+                            timg = torch.tensor(hdul, dtype=torch.float32)
+                            print("SHS", timg.shape)
+                            assert(len(timg.shape) == 3)
+
+                            pbar.update(1)
+                            img_files.append(fpath)
+                            self.available.append(idx)
+                            idx += 1
 
                         if len(img_files) >= max_num:
                             pbar.close()
