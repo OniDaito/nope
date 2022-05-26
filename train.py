@@ -584,9 +584,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-trans",
         type=float,
-        default=0.1,
+        default=1.0,
         help="The scalar on the translation we generate and predict \
-                          (default: 0.1).",
+                          (default: 1.0).",
     )
     parser.add_argument(
         "--max-spawn",

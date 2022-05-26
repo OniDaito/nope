@@ -78,7 +78,6 @@ class ImageLoader(Loader):
                         with fits.open(fpath) as w:
                             hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                             timg = torch.tensor(hdul, dtype=torch.float32)
-                            print("SHS", timg.shape)
                             assert(len(timg.shape) == 3)
 
                             pbar.update(1)

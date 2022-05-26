@@ -74,7 +74,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, max_trans=0.25):
+    def __init__(self, splat: Splat, max_trans=1.0):
         """
         Initialise the model.
 
@@ -233,11 +233,12 @@ class Net(nn.Module):
 
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
         images = []
+        boost = 1.2
 
         for idx, rot in enumerate(self._final):
-            tx = rot[3] * self.max_shift
-            ty = rot[4] * self.max_shift
-            tz = rot[5] * self.max_shift
+            tx = torch.tanh(rot[3]) * self.max_shift * boost  # Make a little bigger so we can get to the top end a little easier
+            ty = torch.tanh(rot[4]) * self.max_shift * boost
+            tz = torch.tanh(rot[5]) * self.max_shift * boost
 
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma # sp(rot[6])
