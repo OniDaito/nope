@@ -282,7 +282,7 @@ def train(
 
     model.train()
 
-    scheduler = torch.optim.ReduceLROnPlateau(optimiser, 'min')
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, 'min')
 
     # Which normalisation are we using?
     normaliser_out = NormaliseNull()
