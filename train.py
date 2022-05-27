@@ -193,6 +193,8 @@ def test(
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata.rotations)
 
+            print(points_model.points.data)
+
     buffer_test.set.shuffle()
     model.train()
     return loss

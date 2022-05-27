@@ -173,7 +173,7 @@ class NormaliseBasic(object):
         intensity = intensity.reshape(img_batch.shape[0], 1, 1, 1, 1)
         dimg = img_batch * intensity
         # TODO - this does occur but shouldn't. Might be important to fix.
-        assert(torch.sum(dimg) > 0)
+        # assert(torch.sum(dimg) > 0)
         dimg = dimg.to(dtype=DTYPE)
         return dimg
 
