@@ -14,6 +14,7 @@ various options.
 
 """
 
+from multiprocessing import reduction
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -57,7 +58,10 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    loss = F.l1_loss(output, target, reduction="mean")
+    # loss = F.l1_loss(output, target, reduction="mean")
+    loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
+    loss = loss_func(output, target)
+
     return loss
 
 
