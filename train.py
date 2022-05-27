@@ -500,7 +500,8 @@ def init(args, device):
     # Create our main network
     model = Net(
         splat_out,
-        max_trans=args.max_trans
+        max_trans=args.max_trans,
+        predict_sigma=args.predict_sigma
     ).to(device)
 
     # Save the training data to disk so we can interrogate it later
@@ -604,6 +605,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--save-train-data",
+        action="store_true",
+        default=False,
+        help="Save the data used in the training (default: False).",
+    )
+    parser.add_argument(
+        "--predict-sigma",
         action="store_true",
         default=False,
         help="Save the data used in the training (default: False).",
