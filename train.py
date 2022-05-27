@@ -179,21 +179,21 @@ def test(
                 if write_fits:
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
+                print(model._final)
 
-                ps = model._final.shape[1] - 1
-                sp = nn.Softplus(threshold=12)
-                sig_out = torch.tensor(
-                    [torch.clamp(sp(x[ps]), max=14) for x in model._final]
-                )
-                S.watch(sig_out, "sigma_out_test")
+                if args.predict_sigma:
+                    ps = model._final.shape[1] - 1
+                    sp = nn.Softplus(threshold=12)
+                    sig_out = torch.tensor(
+                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
+                    )
+                    S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
             S.watch(loss, "loss_test")  # loss saved for the last batch only.
             if args.objpath != "":
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata.rotations)
-
-            print(str(points_model.points))
 
     buffer_test.set.shuffle()
     model.train()
