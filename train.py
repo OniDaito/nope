@@ -59,7 +59,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     """
 
     # loss = F.l1_loss(output, target, reduction="mean")
-    loss_func = nn.HuberLoss(reduction="mean", delta=1.0)
+    loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
     loss = loss_func(output, target)
 
     return loss
