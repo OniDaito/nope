@@ -250,10 +250,6 @@ class Splat(object):
         p3 = torch.matmul(self.z_correct_mat, p2)
         p4 = torch.matmul(self.ortho, p3)
         s = torch.matmul(self.ndc, p4)
-        
-        if not torch.all(s > 0):
-            print("Error detected!")
-            import pdb; pdb.set_trace()
 
         px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
         py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)

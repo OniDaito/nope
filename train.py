@@ -521,9 +521,10 @@ def init(args, device):
         data_loader.save(args.savedir + "/train_data.pickle")
 
     variables = []
-    variables.append({"params": model.parameters()})
-    variables.append({"params": points_model.data.data})
-    optimiser = optim.AdamW(variables, lr=args.lr)
+    variables.append({"params": model.parameters(), "lr": args.lr})
+    variables.append({"params": points_model.data.data, "lr": args.plr})
+    optimiser = optim.AdamW(variables)
+
     print("Starting new model")
 
     # Now start the training proper
@@ -702,6 +703,12 @@ if __name__ == "__main__":
         default=0.0,
         help="When coupled with objpath, what is the chance of \
                           a point being dropped? (default 0.0)",
+    )
+    parser.add_argument(
+        "--plr",
+        type=float,
+        default=0.001,
+        help="learning rate (default: 0.001)",
     )
     parser.add_argument(
         "--wobble",

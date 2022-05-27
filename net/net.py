@@ -241,9 +241,9 @@ class Net(nn.Module):
         images = []
 
         for idx, rot in enumerate(self._final):
-            tx = torch.tanh(rot[3]) * self.max_shift
-            ty = torch.tanh(rot[4]) * self.max_shift
-            tz = torch.tanh(rot[5]) * self.max_shift
+            tx = rot[3]
+            ty = rot[4]
+            tz = rot[5]
 
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma
