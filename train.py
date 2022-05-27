@@ -58,9 +58,9 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    # loss = F.l1_loss(output, target, reduction="mean")
-    loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
-    loss = loss_func(output, target)
+    loss = F.l1_loss(output, target, reduction="sum")
+    #loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
+    #loss = loss_func(output, target)
 
     return loss
 
@@ -195,6 +195,7 @@ def test(
 
     buffer_test.set.shuffle()
     model.train()
+    return loss
 
 
 def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> float:
@@ -281,6 +282,8 @@ def train(
 
     model.train()
 
+    scheduler = torch.optim.ReduceLROnPlateau(optimiser, 'min')
+
     # Which normalisation are we using?
     normaliser_out = NormaliseNull()
     normaliser_in = NormaliseNull()
@@ -290,6 +293,7 @@ def train(
         normaliser_in = NormaliseBasic()  # NormaliseWorm()
 
     sigma = sigma_lookup[0]
+    test_loss = 0
 
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
@@ -349,7 +353,7 @@ def train(
                 )
 
                 if args.save_stats:
-                    test(args, model, buffer_test, epoch, batch_idx, points_model, sigma)
+                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma)
                     S.save_points(points_model, args.savedir, epoch, batch_idx)
                     S.update(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
@@ -373,6 +377,7 @@ def train(
                 )
 
         buffer_train.set.shuffle()
+        scheduler.step(test_loss)
 
     # Save a final points file once training is complete
     S.save_points(points_model, args.savedir, epoch, batch_idx)
