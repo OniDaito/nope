@@ -260,7 +260,7 @@ will be recorded."
         )
 
         vertices = []
-        tv = points.data.clone().cpu().detach().numpy()
+        tv = points.data.data.clone().cpu().detach().numpy()
         for v in tv:
             vertices.append((v[0][0], v[1][0], v[2][0], 1.0))
 
