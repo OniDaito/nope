@@ -255,6 +255,17 @@ will be recorded."
 
         points.save_ply(path=path_ply)
 
+        path_obj = (
+            savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)  + ".obj"
+        )
+
+        vertices = []
+        tv = points.data.clone().cpu().detach().numpy()
+        for v in tv:
+            vertices.append((v[0][0], v[1][0], v[2][0], 1.0))
+
+        save_obj(path_obj + ".obj", vertices)
+
 
 # This is the one and only logging object. It's global and we have helper
 # functions to access it.
