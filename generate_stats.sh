@@ -70,7 +70,7 @@ echo $groundtruth
 echo $extras
 
 # Generate a single animated JSON 3D points model from our OBJ files.
-python ../stats/objs_to_json.py --path $base/objs --limit -1
+python ./stats/objs_to_json.py --path $base/objs --limit -1
 
 # Find out which sigma file we used.
 sigmafile=`grep "sigma" $base/run.conf | sed -En "s/.*sigma-file ([^ ]+).*/\1/p"`
