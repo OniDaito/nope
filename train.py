@@ -182,9 +182,10 @@ def test(
                 print(model._final)
 
                 # Checks on the translation
-                assert(torch.abs(model._final[3]) < 1.0)
-                assert(torch.abs(model._final[4]) < 1.0)
-                assert(torch.abs(model._final[5]) < 1.0)
+                for i in range(args.batch_size):
+                    assert(torch.abs(model._final[i][3]) < 1.0)
+                    assert(torch.abs(model._final[i][4]) < 1.0)
+                    assert(torch.abs(model._final[i][5]) < 1.0)
 
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
