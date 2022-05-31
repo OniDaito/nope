@@ -240,10 +240,12 @@ class Net(nn.Module):
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
         images = []
 
+        ss = nn.Softsign()
+
         for idx, rot in enumerate(self._final):
-            tx = rot[3]
-            ty = rot[4]
-            tz = rot[5]
+            tx = ss(rot[3]) * self.max_shift
+            ty = ss(rot[4]) * self.max_shift
+            tz = ss(rot[5]) * self.max_shift
 
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma
