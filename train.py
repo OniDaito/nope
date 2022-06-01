@@ -386,6 +386,9 @@ def train(
         buffer_train.set.shuffle()
         scheduler.step(test_loss)
 
+        for i, group in enumerate(optimiser.param_groups):
+            S.watch(group['lr'], "lr" + str(i))
+
     # Save a final points file once training is complete
     S.save_points(points_model, args.savedir, epoch, batch_idx)
 
