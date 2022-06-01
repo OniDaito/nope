@@ -179,14 +179,13 @@ def test(
                 if write_fits:
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
+
                 print(model._final)
 
-                # Checks on the translation
-                #for i in range(args.batch_size):
-                #    assert(torch.abs(model._final[i][3]) < 2.0)
-                #    assert(torch.abs(model._final[i][4]) < 2.0)
-                #    assert(torch.abs(model._final[i][5]) < 2.0)
-
+                # Make sure we have no nans
+                assert(torch.all( torch.isnan(loss) == False))
+                assert(torch.all(torch.isnan(model._final) == False))
+          
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
                     sp = nn.Softplus(threshold=12)
