@@ -58,7 +58,6 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    print("types", target.dtype, output.dtype)
     loss = F.l1_loss(output, target, reduction="sum")
     #loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
     #loss = loss_func(output, target)
