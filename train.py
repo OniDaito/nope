@@ -180,7 +180,7 @@ def test(
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
 
-                print(model._final)
+                print("Final", model._final)
 
                 # Make sure we have no nans
                 assert(torch.all( torch.isnan(loss) == False))
@@ -499,7 +499,7 @@ def init(args, device):
             set_test, splat_in, buffer_size=test_set_size, device=device
         )
     else:
-        raise ValueError("You must provide either fitspath or objpath argument.")
+        raise ValueError("Yomodelu must provide either fitspath or objpath argument.")
 
     # Create a model of points. We create from multiple obj/ply files and keep
     # track of the indices.
