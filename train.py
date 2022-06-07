@@ -58,6 +58,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
+    print("types", target.dtype, output.dtype)
     loss = F.l1_loss(output, target, reduction="sum")
     #loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
     #loss = loss_func(output, target)
@@ -814,6 +815,8 @@ if __name__ == "__main__":
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
         random.seed(args.seed)
+
+    torch.backends.cuda.matmul.allow_tf32 = True
 
     init(args, device)
     print("Finished Training")
