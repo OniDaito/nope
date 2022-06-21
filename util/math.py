@@ -117,7 +117,27 @@ class PointsTen:
         self.data = torch.tensor(tp, dtype=torch.float32, device=self.device)
         return self
 
+    def get_points(self) -> Points:
+        """
+        Return a Points from this tensor
 
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Points
+            A points class
+
+        """
+        vertices = []
+        for i in range(self.data.shape[0]):
+            vertices.append((float(self.data[i][0][0]),
+                             float(self.data[i][1][0]),
+                             float(self.data[i][2][0]), 1.0))
+
+        points = Points().from_iterable(vertices)
+        return points
 
 class Points:
     """A collection of points in a list. Mostly used
