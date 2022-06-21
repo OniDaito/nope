@@ -325,18 +325,20 @@ def train(
                     args.image_width,
                 ) #, sigma
             )
-
+           
+            # From here...
             output = normaliser_out.normalise(model(target_shaped, points_model.data))
-
             loss = calculate_loss(target_shaped, output)
             loss.backward()
+            # ... to here takes a while
+
             lossy = loss.item()
             optimiser.step()
 
             # If we are using continuous sigma, lets update it here
             sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
             data_loader.set_sigma(sigma)
-            model.set_sigma(sigma)
+            #model.set_sigma(sigma)
 
             # We save here because we want our first step to be untrained
             # network

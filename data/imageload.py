@@ -223,8 +223,10 @@ class ImageLoader(Loader):
                 self.sigma = new_sigma
                 self._create_data()
         else:
+            # No need to recreate all the data. Lets just update the sigma on each datum
             self.sigma = sigma
-            self._create_data()
+            for datum in self.data:
+                datum.sigma = self.sigma
 
         return self
 
