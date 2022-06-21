@@ -34,12 +34,14 @@ def load_points(filename) -> Points:
 
     with open(filename, "r") as f:
         for line in f.readlines():
-            tokens = line.replace("\n", "").split(",")
-            x = float(tokens[0])
-            y = float(tokens[1])
-            z = float(tokens[2])
-            points.append(Point(x, y, z))
-            i = i + 1
+            comment = "".join(line.split())
+            if comment[0] != "#":
+                tokens = line.replace("\n", "").split(",")
+                x = float(tokens[0])
+                y = float(tokens[1])
+                z = float(tokens[2])
+                points.append(Point(x, y, z))
+                i = i + 1
 
     return points
 
