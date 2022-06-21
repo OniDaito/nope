@@ -107,6 +107,31 @@ class PointsTen:
         """
         self.data = t
         return self
+    
+    def from_points(self, points):
+        """
+        Create our PointsTen from a Points instance
+
+        Parameters
+        ----------
+        points : Points
+
+        Returns
+        -------
+        self
+
+        """
+        tp = []
+        for p in points:
+            ttp = []
+            ttp.append([p.x])
+            ttp.append([p.y])
+            ttp.append([p.z])
+            ttp.append([p.w])
+            tp.append(ttp)
+        self.data = torch.tensor(tp, dtype=torch.float32, device=self.device)
+        return self
+
 
 
 class Points:
