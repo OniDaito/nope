@@ -63,7 +63,7 @@ class Point:
 
 
 class PointsTen:
-    """Points, but in their tensor form for pytorch."""
+    """ Points, but in their tensor form for pytorch."""
 
     # TODO - maybe just extend torch.Tensor?
 
@@ -88,25 +88,35 @@ class PointsTen:
     def __len__(self) -> int:
         return int(self.data.shape[0])
 
-    def from_tensor(self, t: torch.Tensor):
-        """
-        Create our PointsTen from a tensor.
+    def clone(self):
+        p = PointsTen(device=self.device)
+        p.data = self.data.clone().detach()
+        return p
 
-        This take a tensor and assumes it's in the correct
-        shape (N, 4, 1). Not ideal and will need to be
-        improved.
+    def from_points(self, points):
+        """
+        Create our PointsTen from a Points instance
 
         Parameters
         ----------
-        t : torch.Tensor
+        points : Points
 
         Returns
         -------
         self
 
         """
-        self.data = t
+        tp = []
+        for p in points:
+            ttp = []
+            ttp.append([p.x])
+            ttp.append([p.y])
+            ttp.append([p.z])
+            ttp.append([p.w])
+            tp.append(ttp)
+        self.data = torch.tensor(tp, dtype=torch.float32, device=self.device)
         return self
+
 
 
 class Points:
