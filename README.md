@@ -5,3 +5,7 @@ An adaptation of HOLLy to the problem of identifying certain neurons of interest
 ## Example run
 
     python ./train.py --savedir ../runs/nope_2021_10_25 --save-interval 800 --train-size 40000 --test-size 600 --valid-size 20 --objpath ./objs/bunny_large.obj --buffer-size 2 --epochs 20 --batch-size 2 --image-width 128 --image-height 64 --image-depth 64 --log-interval 100 --num-points 350 --lr 0.0004
+
+## Analysis of a run
+
+    python analysis.py --final /media/proto_working/runs/nope_2022_06_21/objs/shape_e000_s01000.obj.obj--savedir /media/proto_working/runs/nope_2022_06_21 --data /media/proto_backup/wormz/queelim/dataset_aug10 --no-cuda --sigma 10.0

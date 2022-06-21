@@ -30,6 +30,12 @@ class Batch(object):
             device=device,
         )
 
+        # Should be 4 lots of 4 (4 points)
+        self.graph = torch.zeros(
+            (batch_size, 1, 4, 4),
+            device=device,
+        )
+
         self.rotations = []
         self.translations = []
         self.sigmas = []
@@ -41,6 +47,9 @@ class Batch(object):
             self.rotations.append(datum.rotation)
             self.translations.append(datum.translation)
             self.sigmas.append(datum.sigma)
+        
+        if hasattr(datum, "graph"):
+            self.graph[self._idx] = torch.reshape(datum.graph, (1, 4, 4))
 
         self._idx += 1
 

@@ -24,18 +24,17 @@ from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
-from util.math import VecRotTen, TransTen
+from util.math import PointsTen, VecRotTen, TransTen
 from globals import DTYPE
 import torch.nn.functional as F
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from torchvision import transforms
-
 
 class ItemBuffer(object):
-    def __init__(self, datum: torch.Tensor, sigma: float):
+    def __init__(self, datum: torch.Tensor,  graph: torch.Tensor, sigma: float):
         self.datum = datum
         self.sigma = sigma
+        self.graph = graph
 
     def flatten(self):
         return (self.datum,)
@@ -322,7 +321,6 @@ class BufferImage(BaseBuffer):
                     hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                     timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
 
-    
                     if not (
                         timg.shape[0] == self.image_dim[0]
                         and timg.shape[1] == self.image_dim[1]
@@ -337,7 +335,11 @@ class BufferImage(BaseBuffer):
 
                     assert(torch.sum(timg) > 0)
                     # Append as a tuple to match buffers
-                    self.buffer.append(ItemBuffer(timg, datum.sigma))
+                        
+                    graph = PointsTen(device=self.device)
+                    graph.from_points(datum.graph)
+                    item = ItemBuffer(timg, graph.data, datum.sigma)
+                    self.buffer.append(item)
 
         except Exception as e:
             import traceback

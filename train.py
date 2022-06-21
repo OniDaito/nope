@@ -533,7 +533,6 @@ def init(args, device):
     variables.append({"params": points_model.data.data, "lr": args.plr})
     optimiser = optim.AdamW(variables)
 
-
     print("Starting new model")
 
     # Now start the training proper

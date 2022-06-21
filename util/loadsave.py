@@ -123,7 +123,7 @@ def load_checkpoint(
     points = points.data.to(device)
     model = model.to(device)
     model.predict_sigma = args.predict_sigma
-    model.predict_translate = not args.no_translate
+    # model.predict_translate = not args.no_translate
     model.max_trans = args.max_trans
 
     return (model, points, optimiser, epoch, batch_idx, loss, args)
