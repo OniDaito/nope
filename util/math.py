@@ -219,6 +219,24 @@ class Points:
         self.size = len(self.data)
         return self
 
+    def cat(self, points):
+        """
+        Add another point set to the end of this set
+
+        Parameters
+        ----------
+        points : Points
+
+        Returns
+        -------
+        self
+        """
+        for point in points:
+            self.data.append(point)
+
+        self.size = len(self.data)
+        return self
+
     def to_ten(self, device="cpu"):
         """
         Create our PointsTen from a Points instance
