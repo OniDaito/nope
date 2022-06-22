@@ -30,6 +30,7 @@ import torch.nn.functional as F
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
+# TODO - might need to change this and add a new class for items with a graph
 class ItemBuffer(object):
     def __init__(self, datum: torch.Tensor,  graph: torch.Tensor, sigma: float):
         self.datum = datum
@@ -48,7 +49,7 @@ class ItemRendered(ItemBuffer):
         translation: TransTen,
         sigma: float
     ):
-        super().__init__(rendered, sigma)
+        super().__init__(rendered, None, sigma)
         self.rotation = rotation
         self.translation = translation
 
