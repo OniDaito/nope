@@ -30,15 +30,13 @@ import torch.nn.functional as F
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
-# TODO - might need to change this and add a new class for items with a graph
 class ItemBuffer(object):
-    def __init__(self, datum: torch.Tensor,  graph: torch.Tensor, sigma: float):
+    def __init__(self, datum: torch.Tensor, sigma: float):
         self.datum = datum
         self.sigma = sigma
-        self.graph = graph
 
     def flatten(self):
-        return (self.datum,)
+        return (self.datum, self.sigma)
 
 
 class ItemRendered(ItemBuffer):
@@ -49,12 +47,27 @@ class ItemRendered(ItemBuffer):
         translation: TransTen,
         sigma: float
     ):
-        super().__init__(rendered, None, sigma)
+        super().__init__(rendered, sigma)
         self.rotation = rotation
         self.translation = translation
 
     def flatten(self):
         return (self.datum, self.rotation, self.sigma)
+
+
+class ItemGraph(ItemBuffer):
+    def __init__(
+        self,
+        datum: torch.Tensor,
+        graph,
+        sigma: float
+    ):
+        super().__init__(datum, sigma)
+        self.graph = graph
+
+    def flatten(self):
+        return (self.datum, self.graph, self.sigma)
+
 
 
 class BaseBuffer(object):
@@ -339,7 +352,7 @@ class BufferImage(BaseBuffer):
                         
                     graph = PointsTen(device=self.device)
                     graph.from_points(datum.graph)
-                    item = ItemBuffer(timg, graph.data, datum.sigma)
+                    item = ItemGraph(timg, graph.data, datum.sigma)
                     self.buffer.append(item)
 
         except Exception as e:
