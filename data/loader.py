@@ -478,7 +478,6 @@ class Loader(object):
                     self.dropout,
                     self.wobble,
                     self.spawn,
-                    self.rotate,
                     self._max_spawn
                 ) = pickle.load(f)
 
@@ -514,7 +513,6 @@ class Loader(object):
                     self.dropout,
                     self.wobble,
                     self.spawn,
-                    self.rotate,
                     self._max_spawn
                 ),
                 f,
