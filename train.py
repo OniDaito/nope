@@ -338,7 +338,7 @@ def train(
             # If we are using continuous sigma, lets update it here
             sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
             data_loader.set_sigma(sigma)
-            #model.set_sigma(sigma)
+            model.set_sigma(sigma)
 
             # We save here because we want our first step to be untrained
             # network
@@ -393,6 +393,21 @@ def train(
 
     # Save a final points file once training is complete
     S.save_points(points_model, args.savedir, epoch, batch_idx)
+    print("saving checkpoint", batch_idx, epoch)
+    save_model(model, args.savedir + "/model.tar")
+
+    save_checkpoint(
+        model,
+        points_model,
+        optimiser,
+        epoch,
+        batch_idx,
+        loss,
+        sigma,
+        args,
+        args.savedir,
+        args.savename,
+    )
 
     return points_model
 

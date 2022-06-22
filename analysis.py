@@ -11,6 +11,7 @@ nope stuff
 
 """
 
+import imp
 import torch
 import numpy as np
 import argparse
@@ -22,7 +23,7 @@ from util.image import NormaliseBasic, NormaliseNull
 from util.math import TransTen, VecRotTen
 from util.plyobj import load_obj
 from scipy.cluster.vq import kmeans
-from vedo import Points, show
+from vedo import Points, show, Volume
 from util.loadsave import load_checkpoint, load_model
 
 
@@ -118,13 +119,16 @@ if __name__ == "__main__":
         batcher = batcher.Batcher(buffer_test, batch_size=1)
         model.set_sigma(args.sigma)
         ddata = batcher.__next__()
+
         graph = ddata.graph.squeeze().numpy()
         graph = graph[:, :3]
+        graph = (graph + 1) / 2 * args.width
+
+        graph = np.array([[0, 0, 0], [128, 0, 0]])
         print("Data Graph", graph)
 
         # Offsets is essentially empty for the test buffer.
         target = ddata.data
-
         target_shaped = normaliser_in.normalise(
             target.reshape(
                 1,
@@ -135,6 +139,17 @@ if __name__ == "__main__":
             )
         )
 
+        target_vol = target.squeeze().numpy() * 255
+        # Interpolate the depths
+        # https://stackoverflow.com/questions/28934767/best-way-to-interpolate-a-numpy-ndarray-along-an-axis
+        from scipy.interpolate import interp1d
+        depths = np.linspace(0, 1, args.depth)
+        f_out = interp1d(depths, target_vol, axis=0)
+        new_depths = np.linspace(0, 1, args.width)
+        target_vol = f_out(new_depths)
+        target_vol = target_vol.astype(np.uint8)
+        vedo_vol = Volume(target_vol, alpha=0.4, mode=1)
+
         output = normaliser_out.normalise(model(target_shaped, points))
         output = output.reshape(
             1,
@@ -143,6 +158,10 @@ if __name__ == "__main__":
             args.height,
             args.width,
         )
+
+        from util.image import save_fits
+        save_fits(target[0], "analysis_in.fits")
+        save_fits(output[0], "analysis_out.fits")
 
         tparams = model.get_rots()[0]
 
@@ -164,11 +183,17 @@ if __name__ == "__main__":
     # Visualise the points
     points = points.data.squeeze().numpy()
     points = points[:, :3]
+    points = (points + 1) / 2 * args.width
+
+    # For some reason we need to flip Y and Z to get it to match :/
+    #for i in range(points.shape[0]):
+    #    points[i][1] = args.height - points[i][1]
+    #    points[i][2] = args.height - points[i][2]
 
     groups, _ = kmeans(points, 4)
-    print(groups)
-    points_vedo = Points(points).c('green2')
-    groups_vedo = Points(groups, r=12).c('blue2')
-    graph_vedo = Points(graph, r=12).c('red2')
+    print("K Means", groups)
+    points_vedo = Points(points, r=6).c('green')
+    groups_vedo = Points(groups, r=12).c('blue')
+    graph_vedo = Points(graph, r=12).c('red')
 
-    show(points_vedo, groups_vedo, graph_vedo, __doc__, axes=1, viewup='y').close()
+    show(vedo_vol, points_vedo, groups_vedo, graph_vedo, __doc__, axes=1, viewup='y').close()
