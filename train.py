@@ -547,7 +547,10 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
-    variables.append({"params": points_model.data.data, "lr": args.plr})
+
+    if not args.poseonly:
+        variables.append({"params": points_model.data.data, "lr": args.plr})
+
     optimiser = optim.AdamW(variables)
 
     print("Starting new model")
@@ -683,6 +686,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we augment the data with XY rotation (default False)?",
+        required=False,
+    )
+    parser.add_argument(
+        "--poseonly",
+        default=False,
+        action="store_true",
+        help="Do we just attempt to fit the pose?",
         required=False,
     )
     parser.add_argument(
