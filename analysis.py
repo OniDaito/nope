@@ -88,11 +88,10 @@ if __name__ == "__main__":
     set_test = sets.DataSet(sets.SetType.TEST, 100, data_loader)
     image_size = (args.depth, args.height, args.width)
     buffer_test = buffer.BufferImage(set_test, buffer_size=1, image_size=image_size, device=device)
+    set_test.load(args.savedir + "/test_set.pickle")
+    data_loader.load(args.savedir + "/train_data.pickle")
 
     print("Data Item", set_test[0].path, set_test[0].graph)
-    
-    #set_test.load(args.savedir + "/test_set.pickle")
-    #data_loader.load(args.savedir + "/train_data.pickle")
 
     # Load our model and make a prediction
     model = load_model(args.savedir + "/model.tar", device)
@@ -124,7 +123,6 @@ if __name__ == "__main__":
         graph = graph[:, :3]
         graph = (graph + 1) / 2 * args.width
 
-        graph = np.array([[0, 0, 0], [128, 0, 0]])
         print("Data Graph", graph)
 
         # Offsets is essentially empty for the test buffer.

@@ -216,6 +216,7 @@ class DataSet(object):
         if os.path.isfile(filename):
             with open(filename, "rb") as f:
                 self.allocated = pickle.load(f)
+                print("Loaded set from", filename)
 
         self.size = len(self.allocated)
         return self

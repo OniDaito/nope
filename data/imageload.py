@@ -341,10 +341,13 @@ class ImageLoader(Loader):
             with open(filename, "rb") as f:
                 (
                     self.size,
+                    self.data,
                     self.base_image_path,
                     self.deterministic,
                     self.sigma,
                 ) = pickle.load(f)
+
+                print("Loaded imageloader from", filename)
 
         self.available = [i for i in range(0, self.size)]
         return self
@@ -368,6 +371,7 @@ class ImageLoader(Loader):
             pickle.dump(
                 (
                     self.size,
+                    self.data,
                     self.base_image_path,
                     self.deterministic,
                     self.sigma,
