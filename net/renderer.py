@@ -66,9 +66,9 @@ class Splat(object):
         self.trans_mat = gen_identity(device=self.device)
         self.rot_mat = gen_identity(device=self.device)
         self.scale_mat = gen_scale(
-            torch.tensor([0.5], dtype=DTYPE, device=self.device),
-            torch.tensor([0.5], dtype=DTYPE, device=self.device),
-            torch.tensor([0.5], dtype=DTYPE, device=self.device),
+            torch.tensor([1.0], dtype=DTYPE, device=self.device),
+            torch.tensor([1.0], dtype=DTYPE, device=self.device),
+            torch.tensor([1.0], dtype=DTYPE, device=self.device),
         )
         self.z_correct_mat = gen_scale(
             torch.tensor([1.0], dtype=DTYPE, device=self.device),
