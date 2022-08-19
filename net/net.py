@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
 from net.renderer import Splat
-from util.math import VecRotTen, TransTen, PointsTen
+from util.math import VecRotTen, TransTen, PointsTen, mat_from_six
 from typing import Tuple
 from globals import DTYPE
 
@@ -139,10 +139,10 @@ class Net(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
-        self.params = 6
+        self.params = 9
 
         if self.predict_sigma:
-            self.params = 7
+            self.params = 10
 
         self.fc2 = nn.Linear(256, self.params)
         self.sigma = 1.8
@@ -242,22 +242,22 @@ class Net(nn.Module):
 
         ss = nn.Softsign()
 
-        for idx, rot in enumerate(self._final):
-            tx = ss(rot[3]) * self.max_shift
-            ty = ss(rot[4]) * self.max_shift
-            tz = ss(rot[5]) * self.max_shift
+        for idx, param in enumerate(self._final):
+            tx = ss(param[6]) * self.max_shift
+            ty = ss(param[7]) * self.max_shift
+            tz = ss(param[8]) * self.max_shift
 
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma
 
             if self.predict_sigma:
-                final_sigma = sp(rot[6])
+                final_sigma = sp(param[9])
 
-            r = VecRotTen(rot[0], rot[1], rot[2])
+            m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
             t = TransTen(tx, ty, tz)
 
             images.append(
-                self.splat.render(points, r, t, self._mask, final_sigma).reshape(
+                self.splat.render_rot_mat(points, m, t, self._mask, final_sigma).reshape(
                     (1, self.splat.size[0], self.splat.size[1], self.splat.size[2])
                 )
             )

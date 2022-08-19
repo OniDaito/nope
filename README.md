@@ -8,4 +8,4 @@ An adaptation of HOLLy to the problem of identifying certain neurons of interest
 
 ## Analysis of a run
 
-    python analysis.py --final /media/proto_working/runs/nope_2022_06_21/objs/shape_e000_s01000.obj.obj--savedir /media/proto_working/runs/nope_2022_06_21 --data /media/proto_backup/wormz/queelim/dataset_aug10 --no-cuda --sigma 10.0
+    python analysis.py --final /media/proto_working/runs/nope_2022_06_27/last.ply --savedir /media/proto_working/runs/nope_2022_06_27 --data /media/proto_backup/wormz/queelim/dataset_aug11 --no-cuda --sigma 4.0

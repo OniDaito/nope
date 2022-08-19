@@ -21,7 +21,7 @@ from data import loader, imageload, sets, buffer, batcher
 from net.renderer import Splat
 from util.image import NormaliseBasic, NormaliseNull
 from util.math import TransTen, VecRotTen
-from util.plyobj import load_obj
+from util.plyobj import load_obj, load_ply
 from scipy.cluster.vq import kmeans
 from vedo import Points, show, Volume
 from util.loadsave import load_checkpoint, load_model
@@ -81,17 +81,25 @@ if __name__ == "__main__":
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    points = load_obj(args.final)
+    points = load_ply(args.final)
     points = points.to_ten()
 
     data_loader = imageload.ImageLoader(image_path=args.data)
     set_test = sets.DataSet(sets.SetType.TEST, 100, data_loader)
     image_size = (args.depth, args.height, args.width)
     buffer_test = buffer.BufferImage(set_test, buffer_size=1, image_size=image_size, device=device)
-    set_test.load(args.savedir + "/test_set.pickle")
-    data_loader.load(args.savedir + "/train_data.pickle")
+    # set_test.load(args.savedir + "/test_set.pickle")
+    # data_loader.load(args.savedir + "/train_data.pickle")
 
     print("Data Item", set_test[0].path, set_test[0].graph)
+
+    graph = set_test[0].graph.to_numpy()
+    graph = graph[:, :3]
+        
+    for i in range(len(graph)):
+        graph[i][2] = (graph[i][2] / args.depth) * args.width
+
+    print("Data Graph", graph)
 
     # Load our model and make a prediction
     model = load_model(args.savedir + "/model.tar", device)
@@ -118,12 +126,6 @@ if __name__ == "__main__":
         batcher = batcher.Batcher(buffer_test, batch_size=1)
         model.set_sigma(args.sigma)
         ddata = batcher.__next__()
-
-        graph = ddata.graph.squeeze().numpy()
-        graph = graph[:, :3]
-        graph = (graph + 1) / 2 * args.width
-
-        print("Data Graph", graph)
 
         # Offsets is essentially empty for the test buffer.
         target = ddata.data

@@ -615,6 +615,45 @@ class VecRotTen:
         return self
 
 
+def six_from_rot(v: VecRotTen, device="cpu"):
+    r = VecRot(float(v.x[0]), float(v.y[0]), float(v.z[0]))
+    m = r.get_mat()
+    r0 = torch.tensor([m[0][0]], device=device)
+    r1 = torch.tensor([m[1][0]], device=device)
+    r2 = torch.tensor([m[2][0]], device=device)
+    r3 = torch.tensor([m[0][1]], device=device)
+    r4 = torch.tensor([m[1][1]], device=device)
+    r5 = torch.tensor([m[2][1]], device=device)
+    return [r0, r1, r2, r3, r4, r5]
+
+
+def mat_from_six(s, device="cpu") -> VecRotTen:
+    """ Return a VecRotTen from 6 parameters as per the 6DOF paper."""
+    # TODO - could it be that perhaps we need to use proper pytorch functions here to keep the gradient?
+    assert(len(s) == 6)
+    a1 = torch.stack([s[0], s[1], s[2]], dim=0).reshape(1, 3)
+    a2 = torch.stack([s[3], s[4], s[5]], dim=0).reshape(1, 3)
+    b1 = a1 / torch.linalg.vector_norm(a1)
+ 
+    # This is what the paper has but other code and papers have the uncommented version :S
+    #b2 = a2 - (torch.dot(b1, a2) * b1)
+    #b2 = b2 / torch.linalg.vector_norm(b2)
+    #b3 = torch.linalg.cross(b1, b2)
+    b3 = torch.linalg.cross(b1, a2)
+    b3 = b3 / torch.linalg.vector_norm(b3)
+    b2 = torch.linalg.cross(b3, b1)
+
+    b1 = b1.reshape((3, 1))
+    b2 = b2.reshape((3, 1))
+    b3 = b3.reshape((3, 1))
+    bc = torch.zeros((3, 1), device=device)
+    br = torch.tensor([0, 0, 0, 1.0], dtype=b1.dtype, device=device).reshape((1, 4))
+    mat = torch.stack([b1, b2, b3, bc], dim=1)
+    mat = mat.squeeze()
+    mat = torch.cat((mat, br), 0)
+
+    return mat
+
 class Trans:
     """Translation as two floats."""
 

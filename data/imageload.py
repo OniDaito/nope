@@ -269,16 +269,18 @@ class ImageLoader(Loader):
             for i, _ in enumerate(classes):
                 file_id = os.path.basename(images[i])[:8]
                 graph = self.graph[file_id]
-                reversed = reverse_graph(graph, self.image_size)
-                self.data.append(ItemImageClass(images[i], classes[i], reversed, self.sigma))
+                # TODO - should we move reversed?
+                # reversed = reverse_graph(graph, self.image_size)
+                self.data.append(ItemImageClass(images[i], classes[i], graph, self.sigma))
 
         else:
             for name in self.filenames:
                 if 'layered' in name:
                     file_id = os.path.basename(name)[:8]
                     graph = self.graph[file_id]
-                    reversed = reverse_graph(graph, self.image_size)
-                    self.data.append(ItemImage(name, reversed, self.sigma))
+                    # TODO - should we move reversed?
+                    #reversed = reverse_graph(graph, self.image_size)
+                    self.data.append(ItemImage(name, graph, self.sigma))
 
         if len(self.data) > self.request_size:
             self.data = self.data[:self.request_size]

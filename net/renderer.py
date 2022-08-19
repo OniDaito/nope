@@ -280,6 +280,81 @@ class Splat(object):
 
         return model
 
+
+    def render_rot_mat(
+        self,
+        points: PointsTen,
+        rot: torch.Tensor,
+        trans: TransTen,
+        mask: torch.Tensor,
+        sigma=1.25,
+    ):
+        """
+        Generate an image. We take the points, a mask, an output filename
+        and 2 classed that represent the rodrigues vector and the translation.
+        Sigma refers to the spread of the gaussian. The mask is used to ignore
+        some of the points if necessary.
+
+        Parameters
+        ----------
+        points : PointsTen
+            The points we are predicting.
+        rot : torch.tensor
+            The rotation as a matrix
+        trans : TransTen
+            The translation of the points.
+        mask : torch.Tensor
+            A series of 1.0s or 0.0s to mask out certain points.
+        sigma : float
+            The sigma value to render our image with.
+
+        Returns
+        -------
+        None
+
+        """
+
+        assert mask is not None
+        if self.xs.shape[0] != points.data.shape[0]:
+            self._gen_mats(points)
+
+        # This section causes upto a 20% hit on the GPU perf
+        self.rot_mat = rot
+        self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
+        p0 = torch.matmul(self.scale_mat, points.data)
+        p1 = torch.matmul(self.rot_mat, p0)
+        p2 = torch.matmul(self.trans_mat, p1)
+        p3 = torch.matmul(self.z_correct_mat, p2)
+        p4 = torch.matmul(self.ortho, p3)
+        s = torch.matmul(self.ndc, p4)
+
+        px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
+        py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
+        pz = s.narrow(1, 2, 1).reshape(len(points), 1, 1, 1)
+        ex = px.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ey = py.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+        ez = pz.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+
+        # Expand the mask out so we can cancel out the contribution
+        # of some of the points
+        mask = mask.reshape(mask.shape[0], 1, 1, 1)
+        mask = mask.expand(mask.shape[0], ey.shape[1], ey.shape[2], ey.shape[3])
+
+        model = (
+            1.0
+            / (2.0 * math.pi * sigma ** 3)
+            * torch.sum(
+                mask
+                * torch.exp(
+                    -((ex - self.xs) ** 2 + (ey - self.ys) ** 2 + (ez - self.zs) ** 2)
+                    / (2 * sigma ** 2)
+                ),
+                dim=0,
+            )
+        )
+
+        return model
+
     def render_conv(
         self,
         points: PointsTen,
