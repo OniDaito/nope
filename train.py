@@ -547,9 +547,7 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
-
-    if not args.poseonly:
-        variables.append({"params": points_model.data.data, "lr": args.plr})
+    variables.append({"params": points_model.data.data, "lr": args.plr})
 
     optimiser = optim.AdamW(variables)
 
