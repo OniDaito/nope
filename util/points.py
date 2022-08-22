@@ -46,7 +46,7 @@ def load_points(filename) -> Points:
     return points
 
 
-def init_points(num_points=500, device="cpu", deterministic=False) -> Points:
+def init_points(num_points=500, device="cpu", deterministic=False, spread=1.0) -> Points:
     """
     Rather than load a torus or fixed shape, create a
     tensor that contains a random number of points.
@@ -61,6 +61,9 @@ def init_points(num_points=500, device="cpu", deterministic=False) -> Points:
     deterministic : bool
         Are we going for a deterministic run?
         Default - False.
+    spread: float
+        How wide should the area where points are placed be?
+        Default - 1.0
 
     Returns
     -------
@@ -76,9 +79,9 @@ def init_points(num_points=500, device="cpu", deterministic=False) -> Points:
     # the points close to the centre
     for i in range(0, num_points):
         p = Point(
-            random.uniform(-1.0, 1.0),
-            random.uniform(-1.0, 1.0),
-            random.uniform(-1.0, 1.0),
+            random.uniform(-spread/2, spread/2),
+            random.uniform(-spread/2, spread/2),
+            random.uniform(-spread/2, spread/2),
             1.0,
         )
         points.append(p)
