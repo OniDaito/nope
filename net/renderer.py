@@ -248,9 +248,7 @@ class Splat(object):
         self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
 
         # Testing with the same modelview matrix.
-        self.modelview = torch.matmul(torch.matmul(
-            torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat
-        ), self.z_correct_mat)
+        self.modelview = torch.matmul(torch.matmul(torch.matmul(self.z_correct_mat, self.scale_mat), self.trans_mat), self.rot_mat)
 
         #p0 = torch.matmul(self.scale_mat, points.data)
         #p1 = torch.matmul(self.rot_mat, p0)
@@ -259,7 +257,8 @@ class Splat(object):
         #p4 = torch.matmul(self.ortho, p3)
         
         p0 = torch.matmul(self.modelview, points.data)
-        s = torch.matmul(self.ndc, p0)
+        p1 = torch.matmul(self.ortho, p0)
+        s = torch.matmul(self.ndc, p1)
 
         px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
         py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
