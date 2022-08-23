@@ -62,7 +62,7 @@ class Splat(object):
         self.device = device
         # self.perspective = gen_perspective(fov, aspect, near, far)
         self.ortho = gen_ortho(self.size, device)
-        # self.modelview = gen_identity(device=self.device)
+        self.modelview = gen_identity(device=self.device)
         self.trans_mat = gen_identity(device=self.device)
         self.rot_mat = gen_identity(device=self.device)
         self.scale_mat = gen_scale(
@@ -246,12 +246,20 @@ class Splat(object):
         # This section causes upto a 20% hit on the GPU perf
         self.rot_mat = gen_mat_from_rod(rot)
         self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
-        p0 = torch.matmul(self.scale_mat, points.data)
-        p1 = torch.matmul(self.rot_mat, p0)
-        p2 = torch.matmul(self.trans_mat, p1)
-        p3 = torch.matmul(self.z_correct_mat, p2)
-        p4 = torch.matmul(self.ortho, p3)
-        s = torch.matmul(self.ndc, p4)
+
+        # Testing with the same modelview matrix.
+        self.modelview = torch.matmul(torch.matmul(
+            torch.matmul(self.scale_mat, self.rot_mat), self.trans_mat
+        ), self.z_correct_mat)
+
+        #p0 = torch.matmul(self.scale_mat, points.data)
+        #p1 = torch.matmul(self.rot_mat, p0)
+        #p2 = torch.matmul(self.trans_mat, p1)
+        #p3 = torch.matmul(self.z_correct_mat, p2)
+        #p4 = torch.matmul(self.ortho, p3)
+        
+        p0 = torch.matmul(self.modelview, points.data)
+        s = torch.matmul(self.ndc, p0)
 
         px = s.narrow(1, 0, 1).reshape(len(points), 1, 1, 1)
         py = s.narrow(1, 1, 1).reshape(len(points), 1, 1, 1)
