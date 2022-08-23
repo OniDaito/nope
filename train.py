@@ -173,8 +173,6 @@ def test(
                     step,
                     batch_idx,
                 )
-                S.save_fits(target, args.savedir, "in_e", epoch, step, batch_idx)
-                S.save_fits(output, args.savedir, "out_e", epoch, step, batch_idx)
 
                 if write_fits:
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
@@ -362,7 +360,7 @@ def train(
                 )
 
                 if args.save_stats:
-                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma)
+                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma, write_fits=args.write_fits)
                     S.save_points(points_model, args.savedir, epoch, batch_idx)
                     S.update(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
@@ -645,6 +643,12 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Save the data used in the training (default: False).",
+    )
+    parser.add_argument(
+        "--write-fits",
+        action="store_true",
+        default=False,
+        help="Save fits files when saving stats (default: False).",
     )
     parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables CUDA training."
