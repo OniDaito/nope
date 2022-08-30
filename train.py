@@ -178,8 +178,6 @@ def test(
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
 
-                print("Final", model._final)
-
                 # Make sure we have no nans
                 assert(torch.all( torch.isnan(loss) == False))
                 assert(torch.all(torch.isnan(model._final) == False))
