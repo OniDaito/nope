@@ -3,7 +3,7 @@
   / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/      # noqa 
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa 
-Author : Benjamin Blundell - k1803390@kcl.ac.uk
+Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 
 stats.py - a selection of functions to save files, stats and
 similar during training of the network but also during running.
@@ -15,11 +15,13 @@ import util.image
 import numpy as np
 import torch
 import json
-import redis
-import psycopg2
+try:
+    import redis
+    import psycopg2
+except ImportError:
+    print("No Redis or Postgresql found. No intermediate stats will be recorded.")
 import os
-from net.model import Model
-from util.math import VecRot, VecRotTen
+from util.math import PointsTen, StretchTen, TransTen, VecRot, VecRotTen
 
 
 class Stats(object):
@@ -29,10 +31,10 @@ class Stats(object):
     def __init__(self):
         # create a stream for logging
         self.watching = {}
-        self._error_printed = False
 
     def on(self, savedir: str):
         self.savedir = savedir
+        self._error_message = False
         path = os.path.normpath(savedir)
         parts = path.split(os.sep)
         self.exp_name = parts[-1]  # WARNING - overwrite potential in the REDIS
@@ -68,8 +70,7 @@ will be recorded."
 
     def close(self):
         """ Make sure we write to the DB. """
-        self._error_printed = False
-
+        self._error_message = False
         # TODO - will probably get rid
         # self.db.close()
         # Zip now happens in the generate_stats.sh script
@@ -94,6 +95,12 @@ will be recorded."
                 new_contain.append(self.tensor_to_list(item))
             elif isinstance(item, VecRotTen):
                 new_list = [item.x.tolist(), item.y.tolist(), item.z.tolist()]
+                new_contain.append(new_list)
+            elif isinstance(item, TransTen):
+                new_list = [item.x.tolist(), item.y.tolist()]
+                new_contain.append(new_list)
+            elif isinstance(item, StretchTen):
+                new_list = [item.sx.tolist(), item.sy.tolist(), item.sz.tolist()]
                 new_contain.append(new_list)
             else:
                 new_contain.append(item)
@@ -161,6 +168,20 @@ will be recorded."
             )
             self.R.expire(key, self._redis_ttl)
 
+        elif isinstance(obj, StretchTen):
+            new_list = [obj.sx[0], obj.sy[0], obj.sz[0]]
+            self.R.zadd(
+                key, {json.dumps({"epoch": epoch, "step": step, "data": new_list}): idx}
+            )
+            self.R.expire(key, self._redis_ttl)
+
+        elif isinstance(obj, TransTen):
+            new_list = [obj.x[0], obj.y[0]]
+            self.R.zadd(
+                key, {json.dumps({"epoch": epoch, "step": step, "data": new_list}): idx}
+            )
+            self.R.expire(key, self._redis_ttl)
+
         elif isinstance(obj, VecRot):
             new_list = [obj.x, obj.y, obj.z]
             self.R.zadd(
@@ -176,24 +197,23 @@ will be recorded."
             self.R.expire(key, self._redis_ttl)
 
     def update(self, epoch: int, set_size: int, batch_size: int, step: int):
-        idx = epoch * set_size + step * batch_size
-        """ Update all our streams with the current idx value. """
         try:
+            idx = epoch * set_size + step * batch_size
+            """ Update all our streams with the current idx value. """
             for name in self.watching.keys():
                 obj = self.watching[name]
                 self._conv(obj, name, epoch, step, idx)
-        except Exception:
-            if not self._error_printed:
-                print("No database to store statistic.")
-                self._error_printed = True
+        except Exception as e:
+            print("Exception in stats saving")
+            print(e)
 
     def write_immediate(self, obj, name, epoch, step, idx):
         try:
             self._conv(obj, name, epoch, step, idx)
         except Exception:
-            if not self._error_printed:
-                print("No database to store statistic.")
-                self._error_printed = True
+            if not self._error_message:
+                print("No database to store statistic. Stats will not be stored.")
+                self._error_message = True
 
     def save_jpg(
         self,
@@ -240,7 +260,7 @@ will be recorded."
         )
 
     def save_points(
-        self, points: Model, savedir: str, epoch: int, step: int, ply=False
+        self, points: PointsTen, savedir: str, epoch: int, step: int, ply=False
     ):
         """Save the points as either an obj or ply file."""
         if not os.path.exists(savedir + "/objs"):
@@ -249,14 +269,11 @@ will be recorded."
         if not os.path.exists(savedir + "/plys"):
             os.makedirs(savedir + "/plys/")
 
-        path_ply = (
-            savedir + "/plys/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5) + ".ply"
-        )
-
-        points.save_ply(path=path_ply)
-
         path_obj = (
-            savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)  + ".obj"
+            savedir + "/objs/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)
+        )
+        path_ply = (
+            savedir + "/plys/shape_e" + str(epoch).zfill(3) + "_s" + str(step).zfill(5)
         )
 
         vertices = []
@@ -264,7 +281,10 @@ will be recorded."
         for v in tv:
             vertices.append((v[0][0], v[1][0], v[2][0], 1.0))
 
-        save_obj(path_obj + ".obj", vertices)
+        if ply:
+            save_ply(path_ply + ".ply", vertices)
+        else:
+            save_obj(path_obj + ".obj", vertices)
 
 
 # This is the one and only logging object. It's global and we have helper

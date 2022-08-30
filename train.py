@@ -118,6 +118,7 @@ def test(
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_test, batch_size=args.batch_size)
     rots_in = []  # Save rots in for stats
+    trans_in = []
     rots_out = []  # Collect all rotations out
     model.set_sigma(sigma)
 
@@ -125,6 +126,7 @@ def test(
         # Assume we are simulating so we have rots to save
         S.watch(rots_in, "rotations_in_test")
         S.watch(rots_out, "rotations_out_test")
+        S.watch(trans_in, "translation_in_test")
 
     for batch_idx, ddata in enumerate(batcher):
         # turn off grads because for some reason, memory goes BOOM!
@@ -195,6 +197,7 @@ def test(
             if args.objpath != "":
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata.rotations)
+                trans_in.append(ddata.translations)
 
     buffer_test.set.shuffle()
     model.train()
