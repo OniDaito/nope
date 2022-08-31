@@ -62,7 +62,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     
     # Loss can hit this if things have moved too far, so redo loss
     if not (torch.all( torch.isnan(loss) == False)):
-        loss = loss[torch.isnan(loss)] = 0.01
+        loss[torch.isnan(loss)] = torch.tensor(0.0001)
 
     return loss
 
