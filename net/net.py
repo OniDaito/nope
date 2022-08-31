@@ -17,7 +17,7 @@ from torch.cuda.amp import autocast
 from net.renderer import Splat
 from util.math import VecRotTen, TransTen, PointsTen, mat_from_six
 from typing import Tuple
-from globals import DTYPE
+from globals import DTYPE, badness
 
 
 def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
@@ -237,6 +237,10 @@ class Net(nn.Module):
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 
+        if not (torch.all(torch.isnan(self._final) == False)):
+            print("final", target)
+            assert(False)
+
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
         images = []
 
@@ -256,11 +260,14 @@ class Net(nn.Module):
             m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
             t = TransTen(tx, ty, tz)
 
-            images.append(
-                self.splat.render_rot_mat(points, m, t, self._mask, final_sigma).reshape(
-                    (1, self.splat.size[0], self.splat.size[1], self.splat.size[2])
-                )
-            )
+            if badness(m):
+                print("rot mat nans", m)
+                assert(False)
+
+            im = self.splat.render_rot_mat(points, m, t, self._mask, final_sigma).reshape(
+                    (1, self.splat.size[0], self.splat.size[1], self.splat.size[2]))
+            images.append(im)
+        
         # TODO - should we return the params we've predicted as well?
         return torch.stack(images)
 

@@ -1106,16 +1106,16 @@ def gen_scale(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor):
        A 4x4 scale matrix.
     """
     x_mask = x.new_tensor(
-        [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+        [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=DTYPE)
 
     y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+        [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=DTYPE)
 
     z_mask = z.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]])
+        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]], dtype=DTYPE)
 
     base = x.new_tensor([[0, 0, 0, 0], [0, 0, 0, 0],
-                         [0, 0, 0, 0], [0, 0, 0, 1]])
+                         [0, 0, 0, 0], [0, 0, 0, 1]], dtype=DTYPE)
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask

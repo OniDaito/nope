@@ -14,6 +14,7 @@ various options.
 
 """
 
+from email.mime import base
 from multiprocessing import reduction
 import torch
 import torch.nn.functional as F
@@ -36,8 +37,8 @@ from stats import stats as S
 from net.renderer import Splat
 from net.net import Net
 from net.model import Model
-from util.image import NormaliseNull, NormaliseBasic, NormaliseWorm
-from globals import DTYPE
+from util.image import NormaliseNull, NormaliseBasic
+from globals import DTYPE, badness
 
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
@@ -62,8 +63,8 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     loss = F.l1_loss(output, target, reduction="sum")
     
     # Loss can hit this if things have moved too far, so redo loss
-    if not (torch.all( torch.isnan(loss) == False)):
-        loss[torch.isnan(loss)] = torch.tensor(1.0, dtype=DTYPE)
+    if badness(loss):
+        assert(False, "Badness in Loss")
 
     return loss
 
@@ -155,6 +156,22 @@ def test(
                 args.image_width,
             )
 
+            '''if not (torch.all(torch.isnan(target) == False)):
+                print("target nans", target)
+                assert(False)
+
+            if not (torch.all(torch.isnan(model._final) == False)):
+                print("final nans", model._final)
+                assert(False)
+            
+            if not (torch.all(torch.isnan(output) == False)):
+                print("output nans", output)
+                assert(False)
+
+            if (output.float().sum().data[0] == 0):
+                print("output is all zero", output)
+                assert(False)'''
+
             rots_out.append(model.get_rots())
             loss = calculate_loss(target_shaped, output)
 
@@ -182,11 +199,6 @@ def test(
                 if write_fits:
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
-
-                # Make sure we have no nans
-                if not (torch.all(torch.isnan(model._final) == False)):
-                    print(model._final)
-                    assert(False)
           
                 if args.predict_sigma:
                     ps = model._final.shape[1] - 1
@@ -291,7 +303,6 @@ def train(
     """
 
     model.train()
-
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, 'min')
 
     # Which normalisation are we using?
@@ -329,14 +340,16 @@ def train(
                 ) #, sigma
             )
            
-            # From here...
-            output = normaliser_out.normalise(model(target_shaped, points_model.data))
-            loss = calculate_loss(target_shaped, output)
-            loss.backward()
-            # ... to here takes a while
+            with torch.autocast("cuda"): # TODO - do we need cpu device check option?
+                output = normaliser_out.normalise(model(target_shaped, points_model.data))
+                loss = calculate_loss(target_shaped, output)
 
+            loss.backward()
             lossy = loss.item()
             optimiser.step()
+    
+            if badness(points_model.data.data):
+                assert(False)
 
             # If we are using continuous sigma, lets update it here
             sigma = cont_sigma(args, epoch, sigma, sigma_lookup)
@@ -550,8 +563,11 @@ def init(args, device):
 
     variables = []
     variables.append({"params": model.parameters(), "lr": args.lr})
-    variables.append({"params": points_model.data.data, "lr": args.plr})
-    optimiser = optim.AdamW(variables)
+    
+    if not args.poseonly:
+        variables.append({"params": points_model.data.data, "lr": args.plr})
+    
+    optimiser = optim.AdamW(variables, eps=1e-04) # eps set here for float16 ness
 
     print("Starting new model")
 

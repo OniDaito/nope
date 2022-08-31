@@ -12,6 +12,7 @@ functions. Based on the DirectX graphics pipeline.
 import torch
 import math
 import torch.nn.functional as F
+from globals import badness
 
 from util.math import (
     gen_mat_from_rod,
@@ -27,6 +28,8 @@ from util.math import (
 )
 from globals import DTYPE
 
+
+    
 
 class Splat(object):
     """Our splatter class that generates matrices, loads 3D
@@ -283,7 +286,10 @@ class Splat(object):
         # This section causes upto a 20% hit on the GPU perf
         self.rot_mat = rot
         self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
-        p0 = torch.matmul(self.scale_mat, points.data)
+        
+        #if not (torch.all(torch.isnan(points.data) == False)):
+
+        p0 = torch.matmul(self.scale_mat, points.data)      
         p1 = torch.matmul(self.rot_mat, p0)
         p2 = torch.matmul(self.trans_mat, p1)
         p3 = torch.matmul(self.z_correct_mat, p2)
@@ -296,6 +302,7 @@ class Splat(object):
         ex = px.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
         ey = py.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
         ez = pz.expand(points.data.shape[0], self.size[0], self.size[1], self.size[2])
+
 
         # Expand the mask out so we can cancel out the contribution
         # of some of the points
