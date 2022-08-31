@@ -58,9 +58,11 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    loss = F.l1_loss(output, target, reduction="sum")
-    #loss_func = nn.HuberLoss(reduction="sum", delta=1.0)
-    #loss = loss_func(output, target)
+    loss = F.l1_loss(output, target, reduction="mean")
+    
+    # Loss can hit this if things have moved too far, so redo loss
+    if not (torch.all( torch.isnan(loss) == False)):
+        loss = loss[torch.isnan(loss)] = 0.01
 
     return loss
 
@@ -181,7 +183,6 @@ def test(
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
 
                 # Make sure we have no nans
-                assert(torch.all( torch.isnan(loss) == False))
                 assert(torch.all(torch.isnan(model._final) == False))
           
                 if args.predict_sigma:

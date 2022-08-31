@@ -12,4 +12,4 @@ globals.py - global defines that don't change.
 
 import torch
 
-DTYPE = torch.float32
+DTYPE = torch.float16
