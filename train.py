@@ -59,7 +59,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
         A loss object
     """
 
-    loss = F.l1_loss(output, target, reduction="mean")
+    loss = F.l1_loss(output, target, reduction="sum")
     
     # Loss can hit this if things have moved too far, so redo loss
     if not (torch.all( torch.isnan(loss) == False)):
