@@ -37,6 +37,7 @@ from net.renderer import Splat
 from net.net import Net
 from net.model import Model
 from util.image import NormaliseNull, NormaliseBasic, NormaliseWorm
+from globals import DTYPE
 
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
@@ -62,7 +63,7 @@ def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     
     # Loss can hit this if things have moved too far, so redo loss
     if not (torch.all( torch.isnan(loss) == False)):
-        loss[torch.isnan(loss)] = torch.tensor(0.0001)
+        loss[torch.isnan(loss)] = torch.tensor(0.0001, dtype=DTYPE)
 
     return loss
 
