@@ -1281,6 +1281,7 @@ def gen_trans_xyz(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Te
 
     base = x.new_tensor(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=DTYPE
+    )
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
