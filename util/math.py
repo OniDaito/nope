@@ -16,7 +16,7 @@ import numpy as np
 import torch
 import random
 from pyquaternion import Quaternion
-
+from globals import DTYPE
 
 def dotty(p, q):
     return p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]
@@ -258,7 +258,7 @@ class Points:
             ttp.append([p.z])
             ttp.append([p.w])
             tp.append(ttp)
-        tten = torch.tensor(tp, dtype=torch.float32, device=device)
+        tten = torch.tensor(tp, dtype=DTYPE, device=device)
         return PointsTen().from_tensor(tten)
 
     def to_array(self) -> array:
@@ -465,9 +465,9 @@ class VecRot:
 
         """
         return VecRotTen(
-            torch.tensor([self.x], dtype=torch.float32, device=device),
-            torch.tensor([self.y], dtype=torch.float32, device=device),
-            torch.tensor([self.z], dtype=torch.float32, device=device),
+            torch.tensor([self.x], dtype=DTYPE, device=device),
+            torch.tensor([self.y], dtype=DTYPE, device=device),
+            torch.tensor([self.z], dtype=DTYPE, device=device),
         )
 
     def __str__(self):
@@ -689,9 +689,9 @@ class Trans:
         TransTen
         """
         return TransTen(
-            torch.tensor([self.x], dtype=torch.float32, device=device),
-            torch.tensor([self.y], dtype=torch.float32, device=device),
-            torch.tensor([self.z], dtype=torch.float32, device=device)
+            torch.tensor([self.x], dtype=DTYPE, device=device),
+            torch.tensor([self.y], dtype=DTYPE, device=device),
+            torch.tensor([self.z], dtype=DTYPE, device=device)
         )
 
 
@@ -762,9 +762,9 @@ class Stretch:
         TransTen
         """
         return StretchTen(
-            torch.tensor([self.sx], dtype=torch.float32, device=device),
-            torch.tensor([self.sy], dtype=torch.float32, device=device),
-            torch.tensor([self.sz], dtype=torch.float32, device=device)
+            torch.tensor([self.sx], dtype=DTYPE, device=device),
+            torch.tensor([self.sy], dtype=DTYPE, device=device),
+            torch.tensor([self.sz], dtype=DTYPE, device=device)
         )
 
 
@@ -809,7 +809,7 @@ class Mask:
         tm = []
         for m in self.mask:
             tm.append([m])
-        return torch.tensor(tm, dtype=torch.float32, device=device)
+        return torch.tensor(tm, dtype=DTYPE, device=device)
 
 
 class PointsTen:
@@ -868,7 +868,7 @@ class PointsTen:
             ttp.append([p.z])
             ttp.append([p.w])
             tp.append(ttp)
-        self.data = torch.tensor(tp, dtype=torch.float32, device=self.device)
+        self.data = torch.tensor(tp, dtype=DTYPE, device=self.device)
         return self
 
     def from_tensor(self, t: torch.Tensor):
@@ -975,7 +975,7 @@ def gen_ortho(size, device="cpu"):
             [0, 0, c, 0],
             [0, 0, 0, 1],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         device=device,
         requires_grad=False,
     )
@@ -1010,7 +1010,7 @@ def gen_screen(size, device="cpu"):
             [0, 0, size[0] / 2.0, size[0] / 2.0],
             [0, 0, 0, 1],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         device=device,
         requires_grad=False,
     )
@@ -1059,7 +1059,7 @@ def gen_perspective(
             [0, 0, far / (far - near), -NF / (far - near)],
             [0, 0, 1, 0],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         requires_grad=False,
         device=device,
     )
@@ -1083,7 +1083,7 @@ def gen_identity(device="cpu") -> torch.Tensor:
     """
     return torch.tensor(
         [[1.0, 0, 0, 0], [0, 1.0, 0, 0], [0, 0, 1.0, 0], [0, 0, 0, 1.0]],
-        dtype=torch.float32,
+        dtype=DTYPE,
         requires_grad=False,
         device=device,
     )
@@ -1156,7 +1156,7 @@ def gen_ndc(size, device="cpu"):
             [0, 0, 1.0, 0],
             [0, 0, 0, 1],
         ],
-        dtype=torch.float32,
+        dtype=DTYPE,
         device=device,
         requires_grad=False,
     )
@@ -1268,20 +1268,19 @@ def gen_trans_xyz(x: torch.Tensor, y: torch.Tensor, z: torch.Tensor) -> torch.Te
     assert x.device == y.device
 
     x_mask = x.new_tensor(
-        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=torch.float32
+        [[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=DTYPE
     )
 
     y_mask = y.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=torch.float32
+        [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=DTYPE
     )
 
     z_mask = z.new_tensor(
-        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]], dtype=torch.float32
+        [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]], dtype=DTYPE
     )
 
     base = x.new_tensor(
-        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=torch.float32
-    )
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=DTYPE
 
     t_x = x.expand_as(x_mask) * x_mask
     t_y = y.expand_as(y_mask) * y_mask
