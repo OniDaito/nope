@@ -207,9 +207,6 @@ if __name__ == "__main__":
             r.random()
             t = TransTen(xt, yt, zt)
             s = StretchTen(sx, sy, sz)
-
-            print(points.data)
-
             result = splat.render(base_points, r, t, s, mask, sigma=3.0)
             save_image(torch.sum(result.detach(), dim=0), name="run.jpg")
             image_test(model, points, device, args.sigma, result, normaliser)

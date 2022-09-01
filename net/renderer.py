@@ -293,6 +293,7 @@ class Splat(object):
 
         #if not (torch.all(torch.isnan(points.data) == False)):
 
+        print(self.scale_mat.device, points.data.device)
         p0 = torch.matmul(self.scale_mat, points.data)      
         p1 = torch.matmul(self.rot_mat, p0)
         p2 = torch.matmul(self.trans_mat, p1)
