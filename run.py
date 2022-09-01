@@ -208,6 +208,8 @@ if __name__ == "__main__":
             t = TransTen(xt, yt, zt)
             s = StretchTen(sx, sy, sz)
 
+            print(points.data)
+
             result = splat.render(base_points, r, t, s, mask, sigma=3.0)
             save_fits(torch.sum(result.detach(), dim=0), name="run.fits")
             image_test(model, points, device, args.sigma, result, normaliser)
