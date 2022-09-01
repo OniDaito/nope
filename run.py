@@ -184,13 +184,13 @@ if __name__ == "__main__":
                 mask.append(1.0)
 
             mask = torch.tensor(mask, device=device)
-            xt = torch.tensor([0.0], dtype=DTYPE)
-            yt = torch.tensor([0.0], dtype=DTYPE)
-            zt = torch.tensor([0.0], dtype=DTYPE)
+            xt = torch.tensor([0.0], dtype=DTYPE, device=device)
+            yt = torch.tensor([0.0], dtype=DTYPE, device=device)
+            zt = torch.tensor([0.0], dtype=DTYPE, device=device)
 
-            sx = torch.tensor([1.0], dtype=DTYPE)
-            sy = torch.tensor([1.0], dtype=DTYPE)
-            sz = torch.tensor([1.0], dtype=DTYPE)
+            sx = torch.tensor([1.0], dtype=DTYPE, device=device)
+            sy = torch.tensor([1.0], dtype=DTYPE, device=device)
+            sz = torch.tensor([1.0], dtype=DTYPE, device=device)
 
             splat = Splat(size=(32, 128, 128), device=device)
 
