@@ -28,7 +28,7 @@ from net.renderer import Splat
 from util.image import save_image, load_fits, save_fits
 from util.loadsave import load_checkpoint, load_model
 from util.plyobj import load_obj, load_ply
-from util.math import PointsTen, StretchTen, TransTen, VecRot
+from util.math import Points, PointsTen, StretchTen, TransTen, VecRot
 import torch.nn.functional as F
 from util.image import NormaliseBasic, NormaliseNull
 from PIL import Image
@@ -152,6 +152,8 @@ if __name__ == "__main__":
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
         normaliser = NormaliseBasic()
+
+    points = Points()
 
     # Potentially load a different set of points
     if args.points != "":
