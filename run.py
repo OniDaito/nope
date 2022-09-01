@@ -211,7 +211,7 @@ if __name__ == "__main__":
             print(points.data)
 
             result = splat.render(base_points, r, t, s, mask, sigma=3.0)
-            save_fits(torch.sum(result.detach(), dim=0), name="run.fits")
+            save_image(torch.sum(result.detach(), dim=0), name="run.jpg")
             image_test(model, points, device, args.sigma, result, normaliser)
         else:
             print("--image must point to a valid fits file or --genobj must point to an obj/ply")
