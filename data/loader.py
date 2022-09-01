@@ -25,7 +25,6 @@ import random
 import pickle
 import array
 import math
-from tkinter import Scale
 from tqdm import tqdm
 from enum import Enum
 from util.math import Points, Point, Mask, Trans, VecRot, Stretch
@@ -49,7 +48,7 @@ class ItemSimulated(LoaderItem):
     """ The Simulated items returned by the basic loader."""
 
     def __init__(
-        self, points: Points, mask: Mask, angle_axis: VecRot, trans: Trans,  stretch: Stretch, sigma: float
+        self, points: Points, mask: Mask, angle_axis: VecRot, trans: Trans, stretch: Stretch, sigma: float
     ):
         """
         Create our ItemSimulated.
@@ -320,7 +319,7 @@ class Loader(object):
 
         item = ItemSimulated(
             points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(
-                tv[3], tv[4], tv[5]), Scale(tv[6], tv[7], tv[8]), self.sigma
+                tv[3], tv[4], tv[5]), Stretch(tv[6], tv[7], tv[8]), self.sigma
         )
         return item
 
