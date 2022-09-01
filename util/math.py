@@ -609,9 +609,9 @@ class VecRotTen:
             math.sqrt(u1) * math.sin(2.0 * math.pi * u3),
             math.sqrt(u1) * math.cos(2.0 * math.pi * u3),
         )
-        self.x = torch.Tensor([rr.axis[0] * rr.radians], device=self.x.device)
-        self.y = torch.Tensor([rr.axis[1] * rr.radians], device=self.x.device)
-        self.z = torch.Tensor([rr.axis[2] * rr.radians], device=self.x.device)
+        self.x = torch.Tensor([rr.axis[0] * rr.radians], device=self.x.device, dtype=DTYPE)
+        self.y = torch.Tensor([rr.axis[1] * rr.radians], device=self.x.device, dtype=DTYPE)
+        self.z = torch.Tensor([rr.axis[2] * rr.radians], device=self.x.device, dtype=DTYPE)
         return self
 
 
