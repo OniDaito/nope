@@ -124,6 +124,7 @@ def test(
     rots_in = []  # Save rots in for stats
     trans_in = []
     rots_out = []  # Collect all rotations out
+    stretch_in = []
     model.set_sigma(sigma)
 
     if args.objpath != "":
@@ -131,6 +132,8 @@ def test(
         S.watch(rots_in, "rotations_in_test")
         S.watch(rots_out, "rotations_out_test")
         S.watch(trans_in, "translation_in_test")
+        S.watch(stretch_in, "stretch_in_test")
+
 
     for batch_idx, ddata in enumerate(batcher):
         # turn off grads because for some reason, memory goes BOOM!
@@ -214,6 +217,7 @@ def test(
                 # Assume we are simulating so we have rots to save
                 rots_in.append(ddata.rotations)
                 trans_in.append(ddata.translations)
+                stretch_in.append(ddata.stretches)
 
     buffer_test.set.shuffle()
     model.train()
