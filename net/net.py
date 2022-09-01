@@ -147,15 +147,15 @@ class Net(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
-        self.params = 9
+        self.num_params = 9
 
         if self.predict_sigma:
-            self.params = 10
+            self.num_params = 10
 
         if self.stretch:
-            num_params += 3
+            self.num_params += 3
 
-        self.fc2 = nn.Linear(256, self.params)
+        self.fc2 = nn.Linear(256, self.num_params)
         self.sigma = 1.8
 
         self.max_shift = max_trans
