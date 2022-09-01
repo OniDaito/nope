@@ -96,7 +96,8 @@ def image_test(model, points, device, sigma, input_image, normaliser):
     # like dropout and what not
     with torch.no_grad():
         model.eval()
-        im = normaliser.normalise(input_image.reshape((1, 1, 128, 128)))
+        # TODO - image size as args
+        im = normaliser.normalise(input_image.reshape((1, 1, 32, 128, 128)))
         im = im.to(device)
         model.set_sigma(sigma)
         x = normaliser.normalise(model.forward(im, points))
