@@ -145,6 +145,14 @@ if __name__ == "__main__":
         )
         model = model.to(device)
         model.eval()
+
+        if not (hasattr(model,'stretch')):
+            model.stretch = False
+            model.max_stretch = 1.0
+            model.sx = torch.tensor([1.0], dtype=DTYPE)
+            model.sy = torch.tensor([1.0], dtype=DTYPE)
+            model.sz = torch.tensor([1.0], dtype=DTYPE)
+
     else:
         print("--load must point to a run directory.")
         sys.exit(0)

@@ -111,9 +111,9 @@ class Net(nn.Module):
         self.max_stretch = max_stretch
 
         # Stretch vars
-        self.sx = torch.Tensor([1.0])
-        self.sy = torch.Tensor([1.0])
-        self.sz = torch.Tensor([1.0])
+        self.sx = torch.tensor([1.0], dtype=DTYPE)
+        self.sy = torch.tensor([1.0], dtype=DTYPE)
+        self.sz = torch.tensor([1.0], dtype=DTYPE)
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
