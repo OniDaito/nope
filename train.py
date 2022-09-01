@@ -514,6 +514,8 @@ def init(args, device):
             dropout=args.dropout,
             spawn=args.spawn_rate,
             max_spawn=args.max_spawn,
+            stretch=args.stretch,
+            max_stretch=args.max_stretch,
             sigma=sigma_lookup[0],
             max_trans=args.max_trans,
             augment=args.aug,
