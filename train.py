@@ -553,7 +553,9 @@ def init(args, device):
     model = Net(
         splat_out,
         max_trans=args.max_trans,
-        predict_sigma=args.predict_sigma
+        predict_sigma=args.predict_sigma,
+        stretch=args.stretch,
+        max_stretch=args.max_stretch
     ).to(device)
 
     # Save the training data to disk so we can interrogate it later
@@ -715,6 +717,20 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we just attempt to fit the pose?",
+        required=False,
+    )
+    parser.add_argument(
+        "--max-stretch",
+        type=float,
+        default=1.0,
+        help="The scalar on the stretch we generate and predict \
+                          (default: 1.0).",
+    )
+    parser.add_argument(
+        "--stretch",
+        default=False,
+        action="store_true",
+        help="Do we stretch the input data and model for it (default: False)?",
         required=False,
     )
     parser.add_argument(

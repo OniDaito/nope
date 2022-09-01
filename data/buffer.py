@@ -45,14 +45,16 @@ class ItemRendered(ItemBuffer):
         rendered: torch.Tensor,
         rotation: VecRotTen,
         translation: TransTen,
+        stretch : StretchTen,
         sigma: float
     ):
         super().__init__(rendered, sigma)
         self.rotation = rotation
         self.translation = translation
+        self.stretch = stretch
 
     def flatten(self):
-        return (self.datum, self.rotation, self.sigma)
+        return (self.datum, self.rotation, self.stretch, self.sigma)
 
 
 class ItemGraph(ItemBuffer):
@@ -220,11 +222,12 @@ class Buffer(BaseBuffer):
                     mask = datum.mask.to_ten(device=self.device)
                     r = datum.angle_axis.to_ten(device=self.device)
                     t = datum.trans.to_ten(device=self.device)
+                    stretch = datum.stretch.to_ten(device=self.device)
 
                     sigma = torch.tensor((datum.sigma), dtype=DTYPE, device=self.device)
-                    rendered = self.renderer.render(points, r, t, mask, sigma)
+                    rendered = self.renderer.render(points, r, t, stretch, mask, sigma)
 
-                self.buffer.append(ItemRendered(rendered, r, t, datum.sigma))
+                self.buffer.append(ItemRendered(rendered, r, t, stretch, datum.sigma))
 
         except Exception as e:
             raise e

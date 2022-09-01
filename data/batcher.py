@@ -39,6 +39,7 @@ class Batch(object):
         self.rotations = []
         self.translations = []
         self.sigmas = []
+        self.stretches = []
 
     def add_datum(self, datum: ItemBuffer):
         self.data[self._idx][0] = datum.datum
@@ -47,6 +48,7 @@ class Batch(object):
             self.rotations.append(datum.rotation)
             self.translations.append(datum.translation)
             self.sigmas.append(datum.sigma)
+            self.stretches.append(datum.stretch)
         
         if hasattr(datum, "graph"):
             self.graph[self._idx] = torch.reshape(datum.graph, (1, 4, 4))

@@ -25,9 +25,10 @@ import random
 import pickle
 import array
 import math
+from tkinter import Scale
 from tqdm import tqdm
 from enum import Enum
-from util.math import Points, Point, Mask, Trans, VecRot
+from util.math import Points, Point, Mask, Trans, VecRot, Stretch
 
 ItemType = Enum("SetType", "SIMULATED FITSIMAGE")
 
@@ -48,7 +49,7 @@ class ItemSimulated(LoaderItem):
     """ The Simulated items returned by the basic loader."""
 
     def __init__(
-        self, points: Points, mask: Mask, angle_axis: VecRot, trans: Trans, sigma: float
+        self, points: Points, mask: Mask, angle_axis: VecRot, trans: Trans,  stretch: Stretch, sigma: float
     ):
         """
         Create our ItemSimulated.
@@ -76,6 +77,7 @@ class ItemSimulated(LoaderItem):
         self.mask = mask
         self.angle_axis = angle_axis
         self.trans = trans
+        self.stretch = stretch
         self.sigma = sigma
 
     def unpack(self) -> tuple:
@@ -117,6 +119,8 @@ class Loader(object):
         max_spawn=1,
         sigma=1.25,
         max_trans=0.1,
+        stretch=True,
+        max_stretch=1.5,
         augment=False,
         num_augment=10
     ):
@@ -169,6 +173,10 @@ class Loader(object):
 
         # How far do we translate?
         self.max_trans = max_trans
+
+        # How far do we stretch?
+        self.stretch = stretch
+        self.max_stretch = max_stretch
 
         # The rotations and translations we shall use
         self.transform_vars = array.array("d")
@@ -303,15 +311,16 @@ class Loader(object):
             tmask.append(self.masks[ts])
 
         mask = Mask(tmask)
+        num_transform_vars = 9
 
         tv = []
-        for i in range(6):
-            ts = idx * 6 + i
+        for i in range(num_transform_vars):
+            ts = idx * num_transform_vars + i
             tv.append(self.transform_vars[ts])
 
         item = ItemSimulated(
             points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(
-                tv[3], tv[4], tv[5]), self.sigma
+                tv[3], tv[4], tv[5]), Scale(tv[6], tv[7], tv[8]) self.sigma
         )
         return item
 
@@ -373,6 +382,10 @@ class Loader(object):
         ty = 0
         tz = 0
 
+        sx = 1.0
+        sy = 1.0
+        sz = 1.0
+
         # Ensure an equal spread of data around all the rotation space so
         # we don't miss any particular areas
         rot = VecRot(0, 0, 0)
@@ -382,6 +395,19 @@ class Loader(object):
             tx = ((random.random() * 2.0) - 1.0) * self.max_trans
             ty = ((random.random() * 2.0) - 1.0) * self.max_trans
             tz = ((random.random() * 2.0) - 1.0) * self.max_trans
+
+            if self.stretch:
+                r0 = -1.0 + 2.0 * random.random()
+                r1 = -1.0 + 2.0 * random.random()
+                r2 = -1.0 + 2.0 * random.random()
+
+                r0 = r0 / (1.0 + math.fabs(r0))
+                r1 = r1 / (1.0 + math.fabs(r1))
+                r2 = r2 / (1.0 + math.fabs(r2))
+                
+                sx = 1.0 + (r0 * self.max_stretch)
+                sy = 1.0 + (r1 * self.max_stretch)
+                sz = 1.0 + (r2 * self.max_stretch)
 
             points, dropout_mask = self._create_points_mask()
 
@@ -414,6 +440,9 @@ class Loader(object):
                     self.transform_vars.append(tx)
                     self.transform_vars.append(ty)
                     self.transform_vars.append(tz)
+                    self.transform_vars.append(sx)
+                    self.transform_vars.append(sy)
+                    self.transform_vars.append(sz)
 
                     self.points_chunk = len(new_points)
                     self.masks_chunk = len(dropout_mask)
@@ -433,6 +462,9 @@ class Loader(object):
                 self.transform_vars.append(tx)
                 self.transform_vars.append(ty)
                 self.transform_vars.append(tz)
+                self.transform_vars.append(sx)
+                self.transform_vars.append(sy)
+                self.transform_vars.append(sz)
 
                 self.points_chunk = len(points)
                 self.masks_chunk = len(dropout_mask)
@@ -472,6 +504,8 @@ class Loader(object):
                     self.points,
                     self.masks,
                     self.max_trans,
+                    self.stretch,
+                    self.max_stretch,
                     self.sigma,
                     self.augment,
                     self.num_augment,
@@ -507,6 +541,8 @@ class Loader(object):
                     self.points,
                     self.masks,
                     self.max_trans,
+                    self.stretch,
+                    self.max_stretch,
                     self.sigma,
                     self.augment,
                     self.num_augment,

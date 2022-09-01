@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from globals import badness
 
 from util.math import (
+    StretchTen,
     gen_mat_from_rod,
     gen_ortho,
     gen_trans_xyz,
@@ -214,6 +215,7 @@ class Splat(object):
         points: PointsTen,
         rot: VecRotTen,
         trans: TransTen,
+        stretch: StretchTen,
         mask: torch.Tensor,
         sigma=1.25,
     ):
@@ -243,7 +245,7 @@ class Splat(object):
         """
 
         rot_mat = gen_mat_from_rod(rot)
-        return self.render_rot_mat(points, rot_mat, trans, mask, sigma)
+        return self.render_rot_mat(points, rot_mat, trans, stretch, mask, sigma)
 
 
     def render_rot_mat(
@@ -251,6 +253,7 @@ class Splat(object):
         points: PointsTen,
         rot: torch.Tensor,
         trans: TransTen,
+        stretch: StretchTen,
         mask: torch.Tensor,
         sigma=1.25,
     ):
@@ -286,7 +289,8 @@ class Splat(object):
         # This section causes upto a 20% hit on the GPU perf
         self.rot_mat = rot
         self.trans_mat = gen_trans_xyz(trans.x, trans.y, trans.z)
-        
+        self.scale_mat = gen_scale(stretch.sx, stretch.sy, stretch.sz)
+
         #if not (torch.all(torch.isnan(points.data) == False)):
 
         p0 = torch.matmul(self.scale_mat, points.data)      

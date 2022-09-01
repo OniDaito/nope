@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
 from net.renderer import Splat
-from util.math import VecRotTen, TransTen, PointsTen, mat_from_six
+from util.math import StretchTen, VecRotTen, TransTen, PointsTen, mat_from_six
 from typing import Tuple
 from globals import DTYPE, badness
 
@@ -74,7 +74,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, max_trans=1.0, predict_sigma=False):
+    def __init__(self, splat: Splat, max_trans=1.0, predict_sigma=False, stretch=False, max_stretch=2.0):
         """
         Initialise the model.
 
@@ -106,6 +106,14 @@ class Net(nn.Module):
         self.batch5b = nn.BatchNorm3d(128)
 
         self.predict_sigma = predict_sigma
+
+        self.stretch = stretch
+        self.max_stretch = max_stretch
+
+        # Stretch vars
+        self.sx = torch.Tensor([1.0])
+        self.sy = torch.Tensor([1.0])
+        self.sz = torch.Tensor([1.0])
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
@@ -143,6 +151,9 @@ class Net(nn.Module):
 
         if self.predict_sigma:
             self.params = 10
+
+        if self.stretch:
+            num_params += 3
 
         self.fc2 = nn.Linear(256, self.params)
         self.sigma = 1.8
@@ -251,11 +262,23 @@ class Net(nn.Module):
             ty = ss(param[7]) * self.max_shift
             tz = ss(param[8]) * self.max_shift
 
+            final_param = 9
+
+            if self.stretch:
+                final_param = 12
+
             sp = nn.Softplus(threshold=12)
             final_sigma = self.sigma
 
             if self.predict_sigma:
-                final_sigma = sp(param[9])
+                final_sigma = sp(param[final_param])
+
+            if self.stretch:
+                self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
+                self.sy = 1.0 + (ss(param[10]) * self.max_stretch)
+                self.sz = 1.0 + (ss(param[11]) * self.max_stretch)
+            
+            param_stretch = StretchTen(self.sx, self.sy, self.sz)
 
             m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
             t = TransTen(tx, ty, tz)
@@ -264,7 +287,7 @@ class Net(nn.Module):
                 print("rot mat nans", m)
                 assert(False)
 
-            im = self.splat.render_rot_mat(points, m, t, self._mask, final_sigma).reshape(
+            im = self.splat.render_rot_mat(points, m, t, param_stretch, self._mask, final_sigma).reshape(
                     (1, self.splat.size[0], self.splat.size[1], self.splat.size[2]))
             images.append(im)
         
