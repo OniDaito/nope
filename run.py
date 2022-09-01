@@ -158,9 +158,9 @@ if __name__ == "__main__":
     # Potentially load a different set of points
     if args.points != "":
         if "ply" in args.points:
-            points.from_points(load_ply(args.points))
+            points.cat(load_ply(args.points))
         else:
-            points.from_points(load_obj(args.points))
+            points.cat(load_obj(args.points))
 
         points = points.to_ten(device=device)
 
