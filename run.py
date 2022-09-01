@@ -148,7 +148,6 @@ if __name__ == "__main__":
         print("--load must point to a run directory.")
         sys.exit(0)
 
-    points = PointsTen(device=device)
 
     normaliser = NormaliseNull()
     if prev_args.normalise_basic:
@@ -161,6 +160,8 @@ if __name__ == "__main__":
         else:
             points.from_points(load_obj(args.points))
 
+        points = points.to_ten(device=device)
+
     if os.path.isfile(args.image):
         input_image = load_fits(args.image, flip=True)
         image_test(model, points, device, args.sigma, input_image, normaliser)
@@ -168,13 +169,13 @@ if __name__ == "__main__":
         if os.path.isfile(args.genobj):
 
             if "obj" in args.genobj:
-                points = load_obj(objpath=args.genobj)
+                base_points = load_obj(objpath=args.genobj)
             elif "ply" in args.genobj:
-                points = load_ply(args.genobj)
+                base_points = load_ply(args.genobj)
             else:
                 print("--genobj must point to an obj/ply")
                 sys.exit(0)
-            base_points = points.to_ten(device=device)
+            base_points = base_points.to_ten(device=device)
 
             mask = []
             for _ in range(len(base_points)):
