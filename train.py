@@ -203,13 +203,12 @@ def test(
                     S.write_immediate(target, "target_image", epoch, step, batch_idx)
                     S.write_immediate(output, "output_image", epoch, step, batch_idx)
           
-                if args.predict_sigma:
-                    ps = model._final.shape[1] - 1
-                    sp = nn.Softplus(threshold=12)
-                    sig_out = torch.tensor(
-                        [torch.clamp(sp(x[ps]), max=14) for x in model._final]
-                    )
-                    S.watch(sig_out, "sigma_out_test")
+                ps = model._final.shape[1] - 1
+                sp = nn.Softplus(threshold=12)
+                sig_out = torch.tensor(
+                    [torch.clamp(sp(x[ps]), max=14) for x in model._final]
+                )
+                S.watch(sig_out, "sigma_out_test")
 
             # soft_plus = torch.nn.Softplus()
             S.watch(loss, "loss_test")  # loss saved for the last batch only.
@@ -559,7 +558,6 @@ def init(args, device):
     model = Net(
         splat_out,
         max_trans=args.max_trans,
-        predict_sigma=args.predict_sigma,
         stretch=args.stretch,
         max_stretch=args.max_stretch
     ).to(device)

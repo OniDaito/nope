@@ -74,7 +74,7 @@ class Net(nn.Module):
     between the output and the original simulated image.
     """
 
-    def __init__(self, splat: Splat, max_trans=1.0, predict_sigma=False, stretch=False, max_stretch=2.0):
+    def __init__(self, splat: Splat, max_trans=1.0, stretch=False, max_stretch=2.0):
         """
         Initialise the model.
 
@@ -104,8 +104,6 @@ class Net(nn.Module):
         self.batch4b = nn.BatchNorm3d(64)
         self.batch5 = nn.BatchNorm3d(128)
         self.batch5b = nn.BatchNorm3d(128)
-
-        self.predict_sigma = predict_sigma
 
         self.stretch = stretch
         self.max_stretch = max_stretch
@@ -147,10 +145,7 @@ class Net(nn.Module):
         
         # Fully connected layers
         self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
-        self.num_params = 9
-
-        if self.predict_sigma:
-            self.num_params = 10
+        self.num_params = 10
 
         if self.stretch:
             self.num_params += 3
@@ -268,10 +263,7 @@ class Net(nn.Module):
                 final_param = 12
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = self.sigma
-
-            if self.predict_sigma:
-                final_sigma = sp(param[final_param])
+            final_sigma = sp(param[final_param])
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)

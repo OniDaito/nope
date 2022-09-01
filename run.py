@@ -24,6 +24,7 @@ import math
 import argparse
 import sys
 import os
+from torch import nn
 from net.renderer import Splat
 from util.image import save_image, load_fits, save_fits
 from util.loadsave import load_checkpoint, load_model
@@ -88,8 +89,7 @@ def image_test(model, points, device, sigma, input_image, normaliser):
     """Test our model by loading an image and seeing how well we
     can match it. We might need to duplicate to match the batch size.
     """
-    # splat_in = Splat(device=device)
-    splat_out = Splat(device=device)
+    splat_out = Splat(size=(32, 128, 128), device=device)
     model.set_splat(splat_out)
 
     # Need to call model.eval() to set certain layers to eval mode. Ones
@@ -104,14 +104,28 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         x = torch.squeeze(x)
         im = torch.squeeze(im)
         loss = F.l1_loss(x, im, reduction="sum")
-        print(float(loss.item()), ",", model.get_render_params())
-        save_image(x, name="guess.jpg")
+        print("Loss", float(loss.item()))
+        pred_vars = model.get_rots()[0]
 
-        if os.path.exists("guess.fits"):
-            os.remove("guess.fits")
+        ss = nn.Softsign()
 
-        save_fits(x, name="guess.fits")
+        tx = ss(pred_vars[6]) * model.max_shift
+        ty = ss(pred_vars[7]) * model.max_shift
+        tz = ss(pred_vars[8]) * model.max_shift
 
+        if model.predict_sigma:
+            sp = nn.Softplus(threshold=12)
+            final_param = 9
+            final_sigma = sp(pred_vars[final_param])
+            print ("Predicted Sigma", final_sigma)
+
+        #if self.stretch:
+        #    self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
+        #    self.sy = 1.0 + (ss(param[10]) * self.max_stretch)
+        #    self.sz = 1.0 + (ss(param[11]) * self.max_stretch)
+            
+        print("Translation", tx, ty, tz)
+        save_image(torch.sum(x.detach(), dim=0), name="guess.jpg")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Shaper run")
@@ -129,7 +143,7 @@ if __name__ == "__main__":
         "--no-cuda", action="store_true", default=False, help="disables CUDA training"
     )
     parser.add_argument(
-        "--sigma", type=float, default=1.2, help="Sigma for the output (default: 1.2)"
+        "--sigma", type=float, default=3.0, help="Sigma for the output (default: 3.0)"
     )
 
     args = parser.parse_args()
@@ -149,9 +163,9 @@ if __name__ == "__main__":
         if not (hasattr(model,'stretch')):
             model.stretch = False
             model.max_stretch = 1.0
-            model.sx = torch.tensor([1.0], dtype=DTYPE)
-            model.sy = torch.tensor([1.0], dtype=DTYPE)
-            model.sz = torch.tensor([1.0], dtype=DTYPE)
+            model.sx = torch.tensor([1.0], dtype=DTYPE, device=device)
+            model.sy = torch.tensor([1.0], dtype=DTYPE, device=device)
+            model.sz = torch.tensor([1.0], dtype=DTYPE, device=device)
 
     else:
         print("--load must point to a run directory.")
@@ -207,7 +221,7 @@ if __name__ == "__main__":
             r.random()
             t = TransTen(xt, yt, zt)
             s = StretchTen(sx, sy, sz)
-            result = splat.render(base_points, r, t, s, mask, sigma=3.0)
+            result = splat.render(base_points, r, t, s, mask, sigma=args.sigma)
             save_image(torch.sum(result.detach(), dim=0), name="run.jpg")
             image_test(model, points, device, args.sigma, result, normaliser)
         else:
