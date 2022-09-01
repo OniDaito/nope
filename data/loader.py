@@ -320,7 +320,7 @@ class Loader(object):
 
         item = ItemSimulated(
             points, mask, VecRot(tv[0], tv[1], tv[2]), Trans(
-                tv[3], tv[4], tv[5]), Scale(tv[6], tv[7], tv[8]) self.sigma
+                tv[3], tv[4], tv[5]), Scale(tv[6], tv[7], tv[8]), self.sigma
         )
         return item
 

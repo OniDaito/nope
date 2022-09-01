@@ -24,7 +24,7 @@ from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
 from data.loader import ItemType
-from util.math import PointsTen, VecRotTen, TransTen
+from util.math import PointsTen, StretchTen, VecRotTen, TransTen
 from globals import DTYPE
 import torch.nn.functional as F
 import numpy as np
