@@ -116,6 +116,10 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         #if model.predict_sigma:
         sp = nn.Softplus(threshold=12)
         final_param = 9
+
+        if model.stretch:
+            final_param = 12
+
         final_sigma = sp(pred_vars[final_param])
         print ("Predicted Sigma", final_sigma)
 
