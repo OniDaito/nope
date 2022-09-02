@@ -263,7 +263,7 @@ class Net(nn.Module):
                 final_param = 12
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = sp(param[final_param])
+            final_sigma = sp(param[final_param]) + 1.0 # Never any lower than 1.0
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
