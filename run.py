@@ -113,11 +113,11 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         ty = ss(pred_vars[7]) * model.max_shift
         tz = ss(pred_vars[8]) * model.max_shift
 
-        if model.predict_sigma:
-            sp = nn.Softplus(threshold=12)
-            final_param = 9
-            final_sigma = sp(pred_vars[final_param])
-            print ("Predicted Sigma", final_sigma)
+        #if model.predict_sigma:
+        sp = nn.Softplus(threshold=12)
+        final_param = 9
+        final_sigma = sp(pred_vars[final_param])
+        print ("Predicted Sigma", final_sigma)
 
         #if self.stretch:
         #    self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
