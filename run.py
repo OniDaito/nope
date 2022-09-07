@@ -16,7 +16,7 @@ To load a trained network:
   For example:
 
   python run.py --load ../runs/2021_05_06_bl_0 --image renderer.fits --points ../runs/2021_05_06_bl_0/last.ply
-
+  python run.py --load ../runs/nope_2022_09_01 --points ../runs/nope_2022_09_01/last.ply --genobj ./objs/bunny.obj --sigma 5.0
 """
 
 import torch
@@ -114,13 +114,13 @@ def image_test(model, points, device, sigma, input_image, normaliser):
         tz = ss(pred_vars[8]) * model.max_shift
 
         #if model.predict_sigma:
-        sp = nn.Softplus(threshold=12) + 1.0 # Never any lower than 1.0
+        sp = nn.Softplus(threshold=12)
         final_param = 9
 
         if model.stretch:
             final_param = 12
 
-        final_sigma = sp(pred_vars[final_param])
+        final_sigma = sp(pred_vars[final_param]) + 1.0 # Never any lower than 1.0
         print ("Predicted Sigma", final_sigma)
 
         #if self.stretch:
