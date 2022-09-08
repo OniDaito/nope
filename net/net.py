@@ -109,7 +109,7 @@ class Net(nn.Module):
         self.max_stretch = max_stretch
 
         # Stretch vars
-        self.device = self.splat.device
+        self.device = splat.device
         self.sx = torch.tensor([1.0], dtype=DTYPE, device=self.device)
         self.sy = torch.tensor([1.0], dtype=DTYPE, device=self.device)
         self.sz = torch.tensor([1.0], dtype=DTYPE, device=self.device)
