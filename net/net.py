@@ -109,9 +109,10 @@ class Net(nn.Module):
         self.max_stretch = max_stretch
 
         # Stretch vars
-        self.sx = torch.tensor([1.0], dtype=DTYPE)
-        self.sy = torch.tensor([1.0], dtype=DTYPE)
-        self.sz = torch.tensor([1.0], dtype=DTYPE)
+        self.device = self.splat.device
+        self.sx = torch.tensor([1.0], dtype=DTYPE, device=self.device)
+        self.sy = torch.tensor([1.0], dtype=DTYPE, device=self.device)
+        self.sz = torch.tensor([1.0], dtype=DTYPE, device=self.device)
 
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
@@ -155,7 +156,6 @@ class Net(nn.Module):
 
         self.max_shift = max_trans
         self.splat = splat
-        self.device = self.splat.device
         self._lidx = 0
         self._mask = torch.zeros(splat.size, dtype=DTYPE)
 
