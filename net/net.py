@@ -45,6 +45,15 @@ def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
     return (z, y, x)
 
 
+def crash_log(net, extra):
+    with open("crash.log", "w") as f:
+        f.write(extra, "\n")
+        torch.set_printoptions(profile="full")
+        torch.set_printoptions(threshold=10_000)
+        f.write("final", net._final, "\n")
+        f.write("points", net.points, "\n")
+
+
 def num_flat_features(x):
     """
     Return the number of features of this neural net layer,
@@ -243,8 +252,8 @@ class Net(nn.Module):
         x = F.leaky_relu(self.fc1(x))
         self._final = self.fc2(x)  # Save this layer for later use
 
-        if not (torch.all(torch.isnan(self._final) == False)):
-            print("final", target)
+        if badness(self._final):
+            crash_log(self, "line 254")
             assert(False)
 
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
@@ -276,7 +285,7 @@ class Net(nn.Module):
             t = TransTen(tx, ty, tz)
 
             if badness(m):
-                print("rot mat nans", m)
+                crash_log(self, "Line 282")
                 assert(False)
 
             im = self.splat.render_rot_mat(points, m, t, param_stretch, self._mask, final_sigma).reshape(
