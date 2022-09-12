@@ -104,15 +104,16 @@ class Net(nn.Module):
         """
         super(Net, self).__init__()
         # Conv layers
-        self.batch1 = nn.BatchNorm3d(8)
-        self.batch2 = nn.BatchNorm3d(16)
-        self.batch2b = nn.BatchNorm3d(16)
-        self.batch3 = nn.BatchNorm3d(32)
-        self.batch3b = nn.BatchNorm3d(32)
-        self.batch4 = nn.BatchNorm3d(64)
-        self.batch4b = nn.BatchNorm3d(64)
-        self.batch5 = nn.BatchNorm3d(128)
-        self.batch5b = nn.BatchNorm3d(128)
+        self.batch1 = nn.BatchNorm3d(16)
+        self.batch2 = nn.BatchNorm3d(32)
+        self.batch2b = nn.BatchNorm3d(32)
+        self.batch3 = nn.BatchNorm3d(64)
+        self.batch3b = nn.BatchNorm3d(64)
+        self.batch4 = nn.BatchNorm3d(128)
+        self.batch4b = nn.BatchNorm3d(128)
+        self.batch5 = nn.BatchNorm3d(256)
+        self.batch5b = nn.BatchNorm3d(256)
+        self.batch6 = nn.BatchNorm3d(256)
 
         self.stretch = stretch
         self.max_stretch = max_stretch
@@ -126,35 +127,38 @@ class Net(nn.Module):
         # Added more conf layers as we aren't using maxpooling
         # TODO - we only have one pseudo-maxpool at the end
         # TODO - do we fancy some drop-out afterall?
-        self.conv1 = nn.Conv3d(1, 8, 5, stride=2, padding=2)
+        self.conv1 = nn.Conv3d(1, 16, 5, stride=2, padding=2)
         csize = conv_size(splat.size, kernel_size=5, padding=2, stride=2)
 
-        self.conv2 = nn.Conv3d(8, 16, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv3d(16, 32, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv2b = nn.Conv3d(16, 16, 2, stride=2, padding=1)
+        self.conv2b = nn.Conv3d(32, 32, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv3 = nn.Conv3d(16, 32, 3, stride=1, padding=1)
+        self.conv3 = nn.Conv3d(32, 64, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv3b = nn.Conv3d(32, 32, 2, stride=2, padding=1)
+        self.conv3b = nn.Conv3d(64, 64, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv4 = nn.Conv3d(32, 64, 3, stride=1, padding=1)
+        self.conv4 = nn.Conv3d(64, 128, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv4b = nn.Conv3d(64, 64, 2, stride=2, padding=1)
+        self.conv4b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
 
-        self.conv5 = nn.Conv3d(64, 128, 3, stride=1, padding=1)
+        self.conv5 = nn.Conv3d(128, 256, 3, stride=1, padding=1)
         csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
 
-        self.conv5b = nn.Conv3d(128, 128, 2, stride=2, padding=1)
+        self.conv5b = nn.Conv3d(256, 256, 2, stride=2, padding=1)
         csize = conv_size(csize, padding=1, stride=2, kernel_size=2)
+
+        self.conv6 = nn.Conv3d(256, 256, 3, stride=1, padding=1)
+        csize = conv_size(csize, padding=1, stride=1, kernel_size=3)
         
         # Fully connected layers
-        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 128, 256)
+        self.fc1 = nn.Linear(csize[0] * csize[1] * csize[2] * 256, 256)
         self.num_params = 10
 
         if self.stretch:
@@ -178,6 +182,7 @@ class Net(nn.Module):
             self.conv4b,
             self.conv5,
             self.conv5b,
+            self.conv6,
             self.fc1,
             self.fc2,
         ]
@@ -247,6 +252,7 @@ class Net(nn.Module):
 
         x = F.leaky_relu(self.batch5(self.conv5(x)))
         x = F.leaky_relu(self.batch5b(self.conv5b(x)))
+        x = F.leaky_relu(self.batch6(self.conv6(x)))
 
         x = x.view(-1, num_flat_features(x))
         x = F.leaky_relu(self.fc1(x))
