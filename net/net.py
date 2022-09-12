@@ -51,10 +51,10 @@ def crash_log(net, extra):
         torch.set_printoptions(profile="full")
         torch.set_printoptions(threshold=10_000)
         f.write("final\n")
-        f.write(net._final)
+        f.write(str(net._final))
         f.write("\n")
         f.write("points\n") 
-        f.write(net.points)
+        f.write(str(net.points))
         f.write("\n")
 
 
