@@ -47,11 +47,15 @@ def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
 
 def crash_log(net, extra):
     with open("crash.log", "w") as f:
-        f.write(extra, "\n")
+        f.write(extra + "\n")
         torch.set_printoptions(profile="full")
         torch.set_printoptions(threshold=10_000)
-        f.write("final", net._final, "\n")
-        f.write("points", net.points, "\n")
+        f.write("final\n")
+        f.write(net._final)
+        f.write("\n")
+        f.write("points\n") 
+        f.write(net.points)
+        f.write("\n")
 
 
 def num_flat_features(x):
