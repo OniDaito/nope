@@ -17,7 +17,7 @@ from torch.cuda.amp import autocast
 from net.renderer import Splat
 from util.math import StretchTen, VecRotTen, TransTen, PointsTen, mat_from_six
 from typing import Tuple
-from globals import DTYPE, badness
+from globals import DTYPE, badness, EPSILON
 
 
 def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
@@ -282,7 +282,7 @@ class Net(nn.Module):
                 final_param = 12
 
             sp = nn.Softplus(threshold=12)
-            final_sigma = sp(param[final_param])
+            final_sigma = sp(param[final_param]) + EPSILON # A small epsilon that allows low numbers but prevents 0
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)

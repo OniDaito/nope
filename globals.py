@@ -13,6 +13,7 @@ globals.py - global defines that don't change.
 import torch
 
 DTYPE = torch.float16
+EPSILON = 0.001
 
 def badness(t: torch.Tensor) -> bool:
     return not(torch.all(torch.isnan(t) == False) and torch.all(torch.isinf(t) == False))
