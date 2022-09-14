@@ -40,6 +40,7 @@ from net.model import Model
 from util.image import NormaliseNull, NormaliseBasic
 from globals import DTYPE, badness
 import wandb
+from torch import autograd
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     """
@@ -331,30 +332,31 @@ def train(
         # Now begin proper
         print("Starting Epoch", epoch)
         for batch_idx, ddata in enumerate(batcher):
-            target = ddata.data
-            optimiser.zero_grad()
+            with autograd.detect_anomaly():
+                target = ddata.data
+                optimiser.zero_grad()
 
-            # Shape and normalise the input batch
-            target_shaped = normaliser_in.normalise(
-                target.reshape(
-                    args.batch_size,
-                    1,
-                    args.image_depth,
-                    args.image_height,
-                    args.image_width,
-                ) #, sigma
-            )
-           
-            with torch.autocast("cuda"): # TODO - do we need cpu device check option?
-                output = normaliser_out.normalise(model(target_shaped, points_model.data))
-                loss = calculate_loss(target_shaped, output)
+                # Shape and normalise the input batch
+                target_shaped = normaliser_in.normalise(
+                    target.reshape(
+                        args.batch_size,
+                        1,
+                        args.image_depth,
+                        args.image_height,
+                        args.image_width,
+                    ) #, sigma
+                )
+            
+                with torch.autocast("cuda"): # TODO - do we need cpu device check option?
+                    output = normaliser_out.normalise(model(target_shaped, points_model.data))
+                    loss = calculate_loss(target_shaped, output)
 
-            loss.backward()
-            wandb.log({"loss": loss})
-            wandb.log({"final": model._final})
-            wandb.log({"points": points_model.data.data})
-            lossy = loss.item()
-            optimiser.step()
+                loss.backward()
+                wandb.log({"loss": loss})
+                wandb.log({"final": model._final})
+                wandb.log({"points": points_model.data.data})
+                lossy = loss.item()
+                optimiser.step()
     
             if badness(points_model.data.data):
                 assert(False)
