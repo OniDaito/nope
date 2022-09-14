@@ -351,6 +351,8 @@ def train(
 
             loss.backward()
             wandb.log({"loss": loss})
+            wandb.log({"final": model._final})
+            wandb.log({"points": points})
             lossy = loss.item()
             optimiser.step()
     
