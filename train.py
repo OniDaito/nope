@@ -39,7 +39,7 @@ from net.net import Net
 from net.model import Model
 from util.image import NormaliseNull, NormaliseBasic
 from globals import DTYPE, badness
-
+import wandb
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
     """
@@ -322,6 +322,8 @@ def train(
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
 
+    wandb.watch(model)
+
     # Begin the epochs and training
     for epoch in range(args.epochs):
         data_loader.set_sigma(sigma)
@@ -348,6 +350,7 @@ def train(
                 loss = calculate_loss(target_shaped, output)
 
             loss.backward()
+            wandb.log({"loss": loss})
             lossy = loss.item()
             optimiser.step()
     
@@ -574,7 +577,7 @@ def init(args, device):
         variables.append({"params": points_model.data.data, "lr": args.plr})
     
     optimiser = optim.AdamW(variables, eps=1e-04) # eps set here for float16 ness
-
+    wandb.init(project="nope")
     print("Starting new model")
 
     # Now start the training proper

@@ -45,7 +45,7 @@ def conv_size(size, padding=0, kernel_size=5, stride=1) -> Tuple[int, int, int]:
     return (z, y, x)
 
 
-def crash_log(net, extra):
+def crash_log(net, points, extra):
     with open("crash.log", "w") as f:
         f.write(extra + "\n")
         torch.set_printoptions(profile="full")
@@ -54,7 +54,7 @@ def crash_log(net, extra):
         f.write(str(net._final))
         f.write("\n")
         f.write("points\n") 
-        f.write(str(net.points))
+        f.write(str(points))
         f.write("\n")
 
 
@@ -244,7 +244,7 @@ class Net(nn.Module):
 
         """
         x = F.leaky_relu(self.batch1(self.conv1(target)))
-
+        
         x = F.leaky_relu(self.batch2(self.conv2(x)))
         x = F.leaky_relu(self.batch2b(self.conv2b(x)))
 
@@ -263,7 +263,7 @@ class Net(nn.Module):
         self._final = self.fc2(x)  # Save this layer for later use
 
         if badness(self._final):
-            crash_log(self, "line 254")
+            crash_log(self, points, "line 254")
             assert(False)
 
         self._mask = points.data.new_full([points.data.shape[0], 1, 1], fill_value=1.0)
@@ -294,8 +294,8 @@ class Net(nn.Module):
             m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
             t = TransTen(tx, ty, tz)
 
-            if badness(m):
-                crash_log(self, "Line 282")
+            if badness(m) or badness(self._final):
+                crash_log(self, points, "Line 282")
                 assert(False)
 
             im = self.splat.render_rot_mat(points, m, t, param_stretch, self._mask, final_sigma).reshape(
