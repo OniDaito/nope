@@ -39,7 +39,6 @@ from net.net import Net
 from net.model import Model
 from util.image import NormaliseNull, NormaliseBasic
 from globals import DTYPE, badness
-import wandb
 from torch import autograd
 
 def calculate_loss(target: torch.Tensor, output: torch.Tensor):
@@ -323,8 +322,6 @@ def train(
     # We'd like a batch rather than a similar issue.
     batcher = Batcher(buffer_train, batch_size=args.batch_size)
 
-    wandb.watch(model)
-
     # Begin the epochs and training
     for epoch in range(args.epochs):
         data_loader.set_sigma(sigma)
@@ -352,32 +349,7 @@ def train(
                     loss = calculate_loss(target_shaped, output)
 
                 loss.backward()
-                wandb.log({"loss": loss})
-                wandb.log({"final_0_rot_0": model._final[0][0]})
-                wandb.log({"final_0_rot_1": model._final[0][1]})
-                wandb.log({"final_0_rot_2": model._final[0][2]})
-                wandb.log({"final_0_rot_3": model._final[0][3]})
-                wandb.log({"final_0_rot_4": model._final[0][4]})
-                wandb.log({"final_0_rot_5": model._final[0][5]})
-                wandb.log({"final_1_rot_0": model._final[1][0]})
-                wandb.log({"final_1_rot_1": model._final[1][1]})
-                wandb.log({"final_1_rot_2": model._final[1][2]})
-                wandb.log({"final_1_rot_3": model._final[1][3]})
-                wandb.log({"final_1_rot_4": model._final[1][4]})
-                wandb.log({"final_1_rot_5": model._final[1][5]})
-
-                wandb.log({"final_0_trans_0": model._final[0][6]})
-                wandb.log({"final_0_trans_1": model._final[0][7]})
-                wandb.log({"final_0_trans_2": model._final[0][8]})
-                wandb.log({"final_1_trans_0": model._final[1][6]})
-                wandb.log({"final_1_trans_1": model._final[1][7]})
-                wandb.log({"final_1_trans_2": model._final[1][8]})
-
-                wandb.log({"final_0_sigma": model._final[0][9]})
-                wandb.log({"final_1_sigma": model._final[1][9]})
- 
-
-                wandb.log({"points": points_model.data.data})
+          
                 lossy = loss.item()
                 optimiser.step()
     
@@ -604,7 +576,6 @@ def init(args, device):
         variables.append({"params": points_model.data.data, "lr": args.plr})
     
     optimiser = optim.AdamW(variables, eps=1e-04) # eps set here for float16 ness
-    wandb.init(project="nope")
     print("Starting new model")
 
     # Now start the training proper
