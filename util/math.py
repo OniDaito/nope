@@ -14,6 +14,7 @@ from array import array
 import math
 import numpy as np
 import torch
+from torch.cuda.amp import custom_fwd, custom_bwd
 import random
 from pyquaternion import Quaternion
 from globals import DTYPE
@@ -625,6 +626,43 @@ def six_from_rot(v: VecRotTen, device="cpu"):
     r4 = torch.tensor([m[1][1]], device=device)
     r5 = torch.tensor([m[2][1]], device=device)
     return [r0, r1, r2, r3, r4, r5]
+
+
+class MatFromSixFunc(torch.autograd.Function):
+
+    @staticmethod
+    @custom_fwd(cast_inputs=torch.float32)
+    def forward(ctx, input):
+        ctx.save_for_backward(input)
+        
+        assert(len(input) == 6)
+        a1 = torch.stack([input[0], input[1], input[2]], dim=0).reshape(1, 3)
+        a2 = torch.stack([input[3], input[4], input[5]], dim=0).reshape(1, 3)
+        b1 = a1 / torch.linalg.vector_norm(a1)
+    
+        # This is what the paper has but other code and papers have the uncommented version :S
+        #b2 = a2 - (torch.dot(b1, a2) * b1)
+        #b2 = b2 / torch.linalg.vector_norm(b2)
+        #b3 = torch.linalg.cross(b1, b2)
+        b3 = torch.linalg.cross(b1, a2)
+        b3 = b3 / torch.linalg.vector_norm(b3)
+        b2 = torch.linalg.cross(b3, b1)
+
+        b1 = b1.reshape((3, 1))
+        b2 = b2.reshape((3, 1))
+        b3 = b3.reshape((3, 1))
+        bc = torch.zeros((3, 1), device=input[0].device)
+        br = torch.tensor([0, 0, 0, 1.0], dtype=b1.dtype, device=input[0].device).reshape((1, 4))
+        mat = torch.stack([b1, b2, b3, bc], dim=1)
+        mat = mat.squeeze()
+        mat = torch.cat((mat, br), 0)
+
+        return mat
+    
+    #@staticmethod
+    #@custom_bwd
+    #def backward(ctx, grad):
+    #    ...
 
 
 def mat_from_six(s, device="cpu") -> VecRotTen:

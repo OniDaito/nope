@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
 from net.renderer import Splat
-from util.math import StretchTen, VecRotTen, TransTen, PointsTen, mat_from_six
+from util.math import MatFromSixFunc, StretchTen, VecRotTen, TransTen, PointsTen, mat_from_six
 from typing import Tuple
 from globals import DTYPE, badness, EPSILON
 
@@ -291,7 +291,9 @@ class Net(nn.Module):
             
             param_stretch = StretchTen(self.sx, self.sy, self.sz)
 
-            m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
+            sixfunk = MatFromSixFunc.apply
+
+            m = sixfunk([param[0], param[1], param[2], param[3], param[4], param[5]])
             t = TransTen(tx, ty, tz)
 
             if badness(m):
