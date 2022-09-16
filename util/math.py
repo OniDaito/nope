@@ -17,7 +17,7 @@ import torch
 from torch.cuda.amp import custom_fwd, custom_bwd
 import random
 from pyquaternion import Quaternion
-from globals import DTYPE
+from globals import DTYPE, badness
 
 def dotty(p, q):
     return p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]
@@ -668,6 +668,7 @@ class MatFromSixFunc(torch.autograd.Function):
 def mat_from_six(s, device="cpu") -> VecRotTen:
     """ Return a VecRotTen from 6 parameters as per the 6DOF paper."""
     # TODO - could it be that perhaps we need to use proper pytorch functions here to keep the gradient?
+    # I very suspect it might be
     assert(len(s) == 6)
     a1 = torch.stack([s[0], s[1], s[2]], dim=0).reshape(1, 3)
     a2 = torch.stack([s[3], s[4], s[5]], dim=0).reshape(1, 3)
@@ -678,6 +679,11 @@ def mat_from_six(s, device="cpu") -> VecRotTen:
     #b2 = b2 / torch.linalg.vector_norm(b2)
     #b3 = torch.linalg.cross(b1, b2)
     b3 = torch.linalg.cross(b1, a2)
+    
+    # A naughty hack but lets see!
+    if badness(b3): 
+        return gen_identity()
+    
     b3 = b3 / torch.linalg.vector_norm(b3)
     b2 = torch.linalg.cross(b3, b1)
 

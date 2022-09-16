@@ -291,9 +291,9 @@ class Net(nn.Module):
             
             param_stretch = StretchTen(self.sx, self.sy, self.sz)
 
-            sixfunk = MatFromSixFunc.apply
+            #sixfunk = MatFromSixFunc.apply
 
-            m = sixfunk([param[0], param[1], param[2], param[3], param[4], param[5]])
+            m = mat_from_six([param[0], param[1], param[2], param[3], param[4], param[5]], device=self.device)
             t = TransTen(tx, ty, tz)
 
             if badness(m):
