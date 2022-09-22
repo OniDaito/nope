@@ -332,7 +332,7 @@ class BufferImage(BaseBuffer):
             ):
                 # Here is where we render and place into the buffer
                 datum = self.set.__next__()
-                assert datum.type == ItemType.FITSIMAGE
+                assert type(datum) == ItemImage
                 with fits.open(datum.path) as w:
                     #hdul = w[0].data.astype('float32')
                     hdul = w[0].data.byteswap().newbyteorder().astype('float32')
