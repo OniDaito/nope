@@ -28,7 +28,7 @@ import math
 from tqdm import tqdm
 from enum import Enum
 from util.math import Points, Point, Mask, Trans, VecRot, Stretch
-from item import LoaderItem, ItemSimulated, ItemType
+from data.item import LoaderItem, ItemSimulated, ItemType
 
 
 
