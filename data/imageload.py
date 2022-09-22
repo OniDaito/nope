@@ -357,6 +357,6 @@ class ImageLoader(Loader):
                     self.sigma,
                 ),
                 f,
-                pickle.HIGHEST_PROTOCOL,
+                # pickle.HIGHEST_PROTOCOL,
             )
         return self
