@@ -18,7 +18,7 @@ import pickle
 from tqdm import tqdm
 from util.math import Points, Point, gen_trans, gen_scale, PointsTen
 from data.loader import Loader
-from data.item import ItemImage, ItemImageClass, ItemType
+from data.item import ItemImage, ItemImageClass, LoaderItem, ItemType
 
 
 def reverse_graph(graph: Points, image_size):
