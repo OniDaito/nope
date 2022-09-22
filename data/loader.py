@@ -487,7 +487,7 @@ class Loader(object):
                     self._max_spawn
                 ),
                 f,
-                pickle.HIGHEST_PROTOCOL,
+                # pickle.HIGHEST_PROTOCOL,
             )
         return self
 
