@@ -17,30 +17,7 @@ import csv
 import pickle
 from tqdm import tqdm
 from util.math import Points, Point, gen_trans, gen_scale, PointsTen
-from data.loader import Loader, LoaderItem, ItemType
-
-
-class ItemImage(LoaderItem):
-    def __init__(self, path, graph: Points, sigma=1.0):
-        self.type = ItemType.FITSIMAGE
-        self.path = path
-        self.graph = graph
-        self.sigma = sigma
-
-    def unpack(self):
-        return self.path
-
-
-class ItemImageClass(LoaderItem):
-    def __init__(self, path, class_path, graph: Points, sigma=1.0):
-        self.type = ItemType.FITSPLUSCLASS
-        self.path = path
-        self.class_path = class_path
-        self.graph = graph
-        self.sigma = sigma
-
-    def unpack(self):
-        return self.path
+from data.loader import Loader, ImageItem, ImageItemClass ItemType
 
 
 def reverse_graph(graph: Points, image_size):
