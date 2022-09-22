@@ -337,7 +337,8 @@ class BufferImage(BaseBuffer):
                 with fits.open(datum.path) as w:
                     #hdul = w[0].data.astype('float32')
                     hdul = w[0].data.byteswap().newbyteorder().astype('float32')
-                    timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
+                    # float32 here as we need float32 to do the gaussian blur
+                    timg = torch.tensor(hdul, dtype=torch.float32, device=self.device) 
 
                     if not (
                         timg.shape[0] == self.image_dim[0]
