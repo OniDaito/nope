@@ -23,6 +23,7 @@ import torch
 from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
+from data.item import ItemImage
 from data.loader import ItemType
 from util.math import PointsTen, StretchTen, VecRotTen, TransTen
 from globals import DTYPE
