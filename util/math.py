@@ -678,7 +678,7 @@ def mat_from_six(s, device="cpu") -> VecRotTen:
     #b2 = a2 - (torch.dot(b1, a2) * b1)
     #b2 = b2 / torch.linalg.vector_norm(b2)
     #b3 = torch.linalg.cross(b1, b2)
-    b3 = torch.linalg.cross(b1, a2)
+    b3 = torch.nan_to_num(torch.linalg.cross(b1, a2))
     
     # A naughty hack but lets see!
     if badness(b3): 
