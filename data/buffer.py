@@ -352,7 +352,7 @@ class BufferImage(BaseBuffer):
                         timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
                         timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
 
-                    assert(torch.sum(timg) > 0)
+                    # assert(torch.sum(timg) > 0)
                     # Append as a tuple to match buffers
                         
                     graph = PointsTen(device=self.device)
