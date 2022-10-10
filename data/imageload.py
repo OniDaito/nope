@@ -147,7 +147,7 @@ class ImageLoader(Loader):
                     # We need to check there are no duffers in this list
                     fpath = os.path.join(self.base_image_path, filename)
 
-                    '''with fits.open(fpath) as w:
+                    with fits.open(fpath) as w:
                         hdul = w[0].data.byteswap().newbyteorder().astype('float32')
                         timg = torch.tensor(hdul, dtype=torch.float32, device="cpu")
                   
@@ -163,7 +163,7 @@ class ImageLoader(Loader):
                             if intensity > 0.0:
                                 pbar.update(1)
                                 img_files.append(fpath)
-                    '''
+                    
                     pbar.update(1)
                     img_files.append(fpath)
                     
