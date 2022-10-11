@@ -166,9 +166,8 @@ class ImageLoader(Loader):
                                     img_files.append(fpath)
                     except:
                         print("Issue with FITS file", fpath)
-                    
-                    pbar.update(1)
-                    img_files.append(fpath)
+                        import sys
+                        sys.exit(1)
                     
                     if len(img_files) >= max_num:
                         pbar.close()
