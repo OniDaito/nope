@@ -333,38 +333,39 @@ class BufferImage(BaseBuffer):
             ):
                 # Here is where we render and place into the buffer
                 datum = self.set.__next__()
-                assert type(datum) == ItemImage
-                with fits.open(datum.path) as w:
-                    #hdul = w[0].data.astype('float32')
-                    hdul = w[0].data.byteswap().newbyteorder().astype('float32')
-                    # float32 here as we need float32 to do the gaussian blur
-                    timg = torch.tensor(hdul, dtype=torch.float32, device=self.device) 
+               assert datum.type == ItemType.FITSIMAGE
+                try:
+                    with fits.open(datum.path) as w:
+                        #hdul = w[0].data.astype('float32')
+                        hdul = w[0].data.byteswap().newbyteorder().astype('float32')
+                        timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
 
-                    if not (
-                        timg.shape[0] == self.image_dim[0]
-                        and timg.shape[1] == self.image_dim[1]
-                        and timg.shape[2] == self.image_dim[2]
-                    ):
-                        timg = resize_image(timg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
-                    # Perform a sigma blur?
-                    if self.blur and datum.sigma > 1.0:
-                        # first build the smoothing kernel
-                        timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
-                        timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
+                        if not (
+                            timg.shape[0] == self.image_dim[0]
+                            and timg.shape[1] == self.image_dim[1]
+                            and timg.shape[2] == self.image_dim[2]
+                        ):
+                            timg = resize_image(timg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
+                        # Perform a sigma blur?
+                        if self.blur and datum.sigma > 1.0:
+                            # first build the smoothing kernel
+                            timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
+                            timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
 
-                    assert(torch.sum(timg) > 0)
-                    # Append as a tuple to match buffers
-                        
-                    graph = PointsTen(device=self.device)
-                    graph.from_points(datum.graph)
-                    item = ItemGraph(timg, graph.data, datum.sigma)
-                    self.buffer.append(item)
+                        assert(torch.sum(timg) > 0)
+                        # Append as a tuple to match buffers
+                            
+                        graph = PointsTen(device=self.device)
+                        graph.from_points(datum.graph)
+                        item = ItemGraph(timg, graph.data, datum.sigma)
+                        self.buffer.append(item)
+                except:
+                    print("Error in loading FITS image", datum.path)
 
         except Exception as e:
             import traceback
             import sys
             traceback.print_exc(file=sys.stdout)
-            raise e
 
     def image_size(self):
         """The renderer is what holds the final image size."""
