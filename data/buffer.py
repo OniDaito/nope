@@ -360,7 +360,7 @@ class BufferImage(BaseBuffer):
                         item = ItemGraph(timg, graph.data, datum.sigma)
                         self.buffer.append(item)
                 except Exception as e:
-                    import traceback
+                    import traceback, sys
                     print(e)
                     traceback.print_exc(file=sys.stdout)
                     print("Error in loading FITS image", datum.path)
