@@ -361,6 +361,7 @@ class BufferImage(BaseBuffer):
                         self.buffer.append(item)
                 except Exception as e:
                     print(e)
+                    traceback.print_exc(file=sys.stdout)
                     print("Error in loading FITS image", datum.path)
 
         except Exception as e:
