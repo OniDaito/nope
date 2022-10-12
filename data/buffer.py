@@ -359,7 +359,8 @@ class BufferImage(BaseBuffer):
                         graph.from_points(datum.graph)
                         item = ItemGraph(timg, graph.data, datum.sigma)
                         self.buffer.append(item)
-                except:
+                except Exception as e:
+                    print(e)
                     print("Error in loading FITS image", datum.path)
 
         except Exception as e:
