@@ -82,6 +82,7 @@ class ImageLoader(Loader):
         self.data = []
         self.filenames = []
         self.deterministic = False
+        self.check_images = False
         self.sigma = sigma
         self.presigma = presigma
         self.classes = classes
@@ -147,27 +148,31 @@ class ImageLoader(Loader):
                     # We need to check there are no duffers in this list
                     fpath = os.path.join(self.base_image_path, filename)
 
-                    try:
-                        with fits.open(fpath) as w:
-                            hdul = w[0].data.byteswap().newbyteorder().astype('float32')
-                            timg = torch.tensor(hdul, dtype=torch.float32, device="cpu")
-                    
-                            if torch.min(timg) < mini:
-                                mini = torch.min(timg)
-                            if torch.max(timg) > maxi:
-                                maxi = torch.max(timg)
+                    if self.check_images:
+                        try:
+                            with fits.open(fpath) as w:
+                                hdul = w[0].data.byteswap().newbyteorder().astype('float32')
+                                timg = torch.tensor(hdul, dtype=torch.float32, device="cpu")
+                        
+                                if torch.min(timg) < mini:
+                                    mini = torch.min(timg)
+                                if torch.max(timg) > maxi:
+                                    maxi = torch.max(timg)
 
-                            intensity = torch.sum(timg)
-                            id_file = os.path.basename(filename)[:8]
+                                intensity = torch.sum(timg)
+                                id_file = os.path.basename(filename)[:8]
 
-                            if id_file in self.graph.keys():
-                                if intensity > 0.0:
-                                    pbar.update(1)
-                                    img_files.append(fpath)
-                    except:
-                        print("Issue with FITS file", fpath)
-                        import sys
-                        sys.exit(1)
+                                if id_file in self.graph.keys():
+                                    if intensity > 0.0:
+                                        pbar.update(1)
+                                        img_files.append(fpath)
+                        except:
+                            print("Issue with FITS file", fpath)
+                            import sys
+                            sys.exit(1)
+                    else:
+                        pbar.update(1)
+                        img_files.append(fpath)
                     
                     if len(img_files) >= max_num:
                         pbar.close()

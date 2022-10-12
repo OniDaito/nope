@@ -389,22 +389,22 @@ def train(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
                     )
 
-            if batch_idx % args.save_interval == 0:
-                print("saving checkpoint", batch_idx, epoch)
-                save_model(model, args.savedir + "/model.tar")
+                if batch_idx % args.save_interval == 0:
+                    print("saving checkpoint", batch_idx, epoch)
+                    save_model(model, args.savedir + "/model.tar")
 
-                save_checkpoint(
-                    model,
-                    points_model,
-                    optimiser,
-                    epoch,
-                    batch_idx,
-                    loss,
-                    sigma,
-                    args,
-                    args.savedir,
-                    args.savename,
-                )
+                    save_checkpoint(
+                        model,
+                        points_model,
+                        optimiser,
+                        epoch,
+                        batch_idx,
+                        loss,
+                        sigma,
+                        args,
+                        args.savedir,
+                        args.savename,
+                    )
 
         buffer_train.set.shuffle()
         scheduler.step(test_loss)
