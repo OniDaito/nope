@@ -338,7 +338,7 @@ class BufferImage(BaseBuffer):
                     with fits.open(datum.path) as w:
                         #hdul = w[0].data.astype('float32')
                         hdul = w[0].data.byteswap().newbyteorder().astype('float32')
-                        timg = torch.tensor(hdul, dtype=DTYPE, device=self.device)
+                        timg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
 
                         if not (
                             timg.shape[0] == self.image_dim[0]
@@ -350,7 +350,8 @@ class BufferImage(BaseBuffer):
                         if self.blur and datum.sigma > 1.0:
                             # first build the smoothing kernel
                             timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
-                            timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
+
+                        timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
 
                         assert(torch.sum(timg) > 0)
                         # Append as a tuple to match buffers
