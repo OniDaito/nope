@@ -30,8 +30,6 @@ from util.math import (
 from globals import DTYPE
 
 
-    
-
 class Splat(object):
     """Our splatter class that generates matrices, loads 3D
     points and spits them out to a 2D image with gaussian
@@ -315,7 +313,7 @@ class Splat(object):
 
         model = (
             1.0
-            / (2.0 * math.pi * sigma ** 3)
+            / (torch.sqrt(2.0 * math.pi * sigma) ** 3)
             * torch.sum(
                 mask
                 * torch.exp(
