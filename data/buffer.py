@@ -58,21 +58,6 @@ class ItemRendered(ItemBuffer):
         return (self.datum, self.rotation, self.stretch, self.sigma)
 
 
-class ItemGraph(ItemBuffer):
-    def __init__(
-        self,
-        datum: torch.Tensor,
-        graph,
-        sigma: float
-    ):
-        super().__init__(datum, sigma)
-        self.graph = graph
-
-    def flatten(self):
-        return (self.datum, self.graph, self.sigma)
-
-
-
 class BaseBuffer(object):
     def __init__(self, dataset: DataSet, buffer_size=1000, device=torch.device("cpu")):
         """
@@ -355,10 +340,8 @@ class BufferImage(BaseBuffer):
 
                         assert(torch.sum(timg) > 0)
                         # Append as a tuple to match buffers
-                            
-                        graph = PointsTen(device=self.device)
-                        graph.from_points(datum.graph)
-                        item = ItemGraph(timg, graph.data, datum.sigma)
+                  
+                        item = ItemBuffer(timg, datum.sigma)
                         self.buffer.append(item)
                 except Exception as e:
                     import traceback, sys
