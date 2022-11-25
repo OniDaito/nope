@@ -75,10 +75,9 @@ class ItemSimulated(LoaderItem):
 
 
 class ItemImage():
-    def __init__(self, path, graph: Points, sigma=1.0):
+    def __init__(self, path,  sigma=1.0):
         #self.type = ItemType.FITSIMAGE
         self.path = path
-        self.graph = graph
         self.sigma = sigma
 
     def unpack(self):
@@ -86,11 +85,10 @@ class ItemImage():
 
 
 class ItemImageClass():
-    def __init__(self, path, class_path, graph: Points, sigma=1.0):
+    def __init__(self, path, class_path, sigma=1.0):
         #self.type = ItemType.FITSPLUSCLASS
         self.path = path
         self.class_path = class_path
-        self.graph = graph
         self.sigma = sigma
 
     def unpack(self):

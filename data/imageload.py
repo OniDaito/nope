@@ -21,23 +21,6 @@ from data.loader import Loader
 from data.item import ItemImage, ItemImageClass, LoaderItem, ItemType
 
 
-def reverse_graph(graph: Points, image_size):
-    ''' The graph from the imageload .csv file comes in 3D image co-ordinates so it needs to be altered to fit.
-    We are performing almost the reverse of the renderer.'''
-    # For now, stick with a cube of -1 to 1 on each dimension
-    assert(image_size[0] == image_size[1])
-    dim = image_size[0]
-    tgraph = PointsTen()
-    tgraph.from_points(graph)
-    scale = 2.0 / dim
-    scale_mat = gen_scale(torch.tensor([scale]), torch.tensor([scale]), torch.tensor([scale]))
-    trans_mat = gen_trans(torch.tensor([-1.0]), torch.tensor([-1.0]), torch.tensor([-1.0]))
-    tgraph.data = torch.matmul(scale_mat, tgraph.data)
-    tgraph.data = torch.matmul(trans_mat, tgraph.data)
-    ngraph = tgraph.get_points()
-    return ngraph
-
-
 class ImageLoader(Loader):
     """A class that looks for images, saving the filepaths ready for
     use with the dataset class."""
@@ -87,28 +70,9 @@ class ImageLoader(Loader):
         self.presigma = presigma
         self.classes = classes
         self.class_suffix = class_suffix
-        self.graph = {}  # ID links to a bunch of points
         self.image_size = image_size
 
         print("Creating data from", self.base_image_path)
-
-        if os.path.exists(self.base_image_path + "/log.csv"):
-            with open(self.base_image_path + "/log.csv") as csvfile:
-                reader = csv.DictReader(csvfile, delimiter=',')
-                for row in reader:
-                    points = Points()
-                    p0 = Point(float(row['p0x']), float(row['p0y']), float(row['p0z']), 1.0)
-                    points.append(p0)
-                    p1 = Point(float(row['p1x']), float(row['p1y']), float(row['p1z']), 1.0)
-                    points.append(p1)
-                    p2 = Point(float(row['p2x']), float(row['p2y']), float(row['p2z']), 1.0)
-                    points.append(p2)
-                    p3 = Point(float(row['p3x']), float(row['p3y']), float(row['p3z']), 1.0)
-                    points.append(p3)
-                    self.graph[row['id']] = points
-        else:
-            print("log.csv must exist along with the images.")
-            assert(False)
 
         # Do we want pre-blurred images
         if self.presigma:
@@ -162,10 +126,9 @@ class ImageLoader(Loader):
                                 intensity = torch.sum(timg)
                                 id_file = os.path.basename(filename)[:8]
 
-                                if id_file in self.graph.keys():
-                                    if intensity > 0.0:
-                                        pbar.update(1)
-                                        img_files.append(fpath)
+                                if intensity > 0.0:
+                                    pbar.update(1)
+                                    img_files.append(fpath)
                         except:
                             print("Issue with FITS file", fpath)
                             import sys
@@ -253,19 +216,13 @@ class ImageLoader(Loader):
 
             for i, _ in enumerate(classes):
                 file_id = os.path.basename(images[i])[:8]
-                graph = self.graph[file_id]
-                # TODO - should we move reversed?
-                # reversed = reverse_graph(graph, self.image_size)
-                self.data.append(ItemImageClass(images[i], classes[i], graph, self.sigma))
+                self.data.append(ItemImageClass(images[i], classes[i], self.sigma))
 
         else:
             for name in self.filenames:
                 if 'layered' in name:
                     file_id = os.path.basename(name)[:8]
-                    graph = self.graph[file_id]
-                    # TODO - should we move reversed?
-                    #reversed = reverse_graph(graph, self.image_size)
-                    self.data.append(ItemImage(name, graph, self.sigma))
+                    self.data.append(ItemImage(name, self.sigma))
 
         if len(self.data) > self.request_size:
             self.data = self.data[:self.request_size]
