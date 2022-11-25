@@ -262,7 +262,7 @@ def cont_sigma(args, current_epoch: int, sigma: float, sigma_lookup: list) -> fl
         ssize = args.train_size * args.num_aug
     steps_per_epoch = ssize / args.batch_size
     steps = steps_per_epoch * eps
-    cont_factor = math.pow(float(esig) / float(ssig), 1.0 / float(steps))
+    cont_factor = math.pow(float(esig) / (float(ssig) + 1e-5), 1.0 / (float(steps) + 1e-5) 
     new_sigma = sigma * cont_factor
     return new_sigma
 
