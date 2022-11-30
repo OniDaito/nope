@@ -285,11 +285,13 @@ class Net(nn.Module):
 
             if self.predict_sigma:
                 final_param = 9
-                sp = nn.Softplus(threshold=12)
-                final_sigma = torch.clamp(sp(param[final_param]), min=1.0)
-
+    
             if self.stretch:
                 final_param += 3
+
+            if self.predict_sigma:
+                sp = nn.Softplus(threshold=12)
+                final_sigma = torch.clamp(sp(param[final_param]), min=1.0)
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
