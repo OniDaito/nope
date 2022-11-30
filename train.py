@@ -77,7 +77,7 @@ def test(
     step: int,
     points_model: Model,
     sigma: float,
-    write_fits=False,
+    write_fits: bool
 ):
     """
     Switch to test / eval mode and do some recording to our stats
@@ -383,7 +383,7 @@ def train(
                 )
 
                 if args.save_stats:
-                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma, write_fits=args.write_fits)
+                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma, args.write_fits)
                     S.save_points(points_model, args.savedir, epoch, batch_idx)
                     S.update(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
