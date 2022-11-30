@@ -281,7 +281,7 @@ class Net(nn.Module):
             tz = ss(param[8]) * self.max_shift
 
             final_param = 8
-            final_sigma = self.sigma
+            final_sigma = torch.tensor(self.sigma, dtype=torch.float32, device=self.device)
 
             if self.predict_sigma:
                 final_param = 9
