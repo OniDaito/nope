@@ -562,6 +562,7 @@ def init(args, device):
         max_trans=args.max_trans,
         stretch=args.stretch,
         max_stretch=args.max_stretch
+        predict_sigma=args.predict_sigma
     ).to(device)
 
     # Save the training data to disk so we can interrogate it later
