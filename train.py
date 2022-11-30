@@ -200,8 +200,8 @@ def test(
                 )
 
                 if write_fits:
-                    S.write_immediate(target, "target_image", epoch, step, batch_idx)
-                    S.write_immediate(output, "output_image", epoch, step, batch_idx)
+                    S.save_fits(target,  args.savedir, "in_e", epoch, step, batch_idx)
+                    S.save_fits(output,  args.savedir, "out_e", epoch, step, batch_idx)
           
                 ps = model._final.shape[1] - 1
                 sp = nn.Softplus(threshold=12)
