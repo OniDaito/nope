@@ -561,7 +561,7 @@ def init(args, device):
         splat_out,
         max_trans=args.max_trans,
         stretch=args.stretch,
-        max_stretch=args.max_stretch
+        max_stretch=args.max_stretch,
         predict_sigma=args.predict_sigma
     ).to(device)
 
