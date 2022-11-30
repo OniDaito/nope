@@ -291,7 +291,7 @@ class Net(nn.Module):
 
             if self.predict_sigma:
                 sp = nn.Softplus(threshold=12)
-                final_sigma = sp(param[final_param]) + 2.0 # Back to the +2.0 bit as a boost
+                final_sigma = sp(param[final_param]) + 1.0 # Back to the +1.0 bit as a boost - perhaps add a min or boost
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
