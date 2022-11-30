@@ -291,7 +291,7 @@ class Net(nn.Module):
 
             if self.predict_sigma:
                 sp = nn.Softplus(threshold=12)
-                final_sigma = torch.clamp(sp(param[final_param]), min=1.0)
+                final_sigma = sp(param[final_param]) + 2.0 # Back to the +2.0 bit as a boost
 
             if self.stretch:
                 self.sx = 1.0 + (ss(param[9]) * self.max_stretch)
