@@ -549,7 +549,7 @@ def init(args, device):
         points_model.load_models(args.startobjs)
     else:
         tpoints = init_points(
-            args.num_points, device=device, deterministic=args.deterministic, spread=0.3
+            args.num_points, device=device, deterministic=args.deterministic, spread=0.6
         )
         points_model.add_points(tpoints, 0)
 
