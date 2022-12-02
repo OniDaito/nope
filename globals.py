@@ -12,7 +12,7 @@ globals.py - global defines that don't change.
 
 import torch
 
-DTYPE = torch.float16
+DTYPE = torch.float32
 EPSILON = 0.001
 
 def badness(t: torch.Tensor) -> bool:

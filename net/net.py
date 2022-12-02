@@ -226,7 +226,7 @@ class Net(nn.Module):
     def get_rots(self):
         return self._final
 
-    @autocast()
+    # @autocast()
     def forward(self, target: torch.Tensor, points: PointsTen):
         """
         Our forward pass. We take the input image (x), the
