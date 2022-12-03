@@ -344,9 +344,9 @@ def train(
                 ) #, sigma
             )
         
-            with torch.autocast("cuda"): # TODO - do we need cpu device check option?
-                output = normaliser_out.normalise(model(target_shaped, points_model.data))
-                loss = calculate_loss(target_shaped, output)
+            #with torch.autocast("cuda"): # TODO - do we need cpu device check option?
+            output = normaliser_out.normalise(model(target_shaped, points_model.data))
+            loss = calculate_loss(target_shaped, output)
 
             loss.backward()
         
