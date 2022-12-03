@@ -576,7 +576,9 @@ def init(args, device):
     if not args.poseonly:
         variables.append({"params": points_model.data.data, "lr": args.plr})
     
-    optimiser = optim.AdamW(variables, eps=1e-04) # eps set here for float16 ness
+    #optimiser = optim.AdamW(variables, eps=1e-04) # eps set here for float16 ness
+    optimiser = optim.AdamW(variables)
+
     print("Starting new model")
 
     # Now start the training proper
