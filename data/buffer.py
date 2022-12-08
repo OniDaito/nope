@@ -23,7 +23,6 @@ import torch
 from astropy.io import fits
 from tqdm import tqdm
 from data.sets import DataSet
-from data.item import ItemImage
 from data.loader import ItemType
 from util.math import PointsTen, StretchTen, VecRotTen, TransTen
 from globals import DTYPE
@@ -38,6 +37,20 @@ class ItemBuffer(object):
 
     def flatten(self):
         return (self.datum, self.sigma)
+
+
+class ItemMask(ItemBuffer):
+    def __init__(
+        self,
+        image: torch.Tensor,
+        mask: torch.Tensor,
+        sigma: float
+    ):
+        super().__init__(image, sigma)
+        self.mask = mask
+
+    def flatten(self):
+        return (self.datum, self.mask, self.sigma)
 
 
 class ItemRendered(ItemBuffer):
@@ -343,6 +356,123 @@ class BufferImage(BaseBuffer):
                   
                         item = ItemBuffer(timg, datum.sigma)
                         self.buffer.append(item)
+                except Exception as e:
+                    import traceback, sys
+                    print(e)
+                    traceback.print_exc(file=sys.stdout)
+                    print("Error in loading FITS image", datum.path)
+
+        except Exception as e:
+            import traceback
+            import sys
+            traceback.print_exc(file=sys.stdout)
+
+    def image_size(self):
+        """The renderer is what holds the final image size."""
+        return self.image_dim
+
+
+class BufferImageClass(BaseBuffer):
+    """This buffer requires no splat as it loads images instead of
+    rendering from an obj."""
+
+    def __init__(
+        self,
+        dataset,
+        image_size=(25, 100, 100),
+        buffer_size=1000,
+        blur=False,
+        device=torch.device("cpu"),
+    ):
+        """
+        Build our BufferImage - a buffer that loads images as oppose to
+        rendering them using the Splat class.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            The dataset behind this buffer.
+        image_size : tuple
+            The size of the images to be expected - default: (128, 128)
+        buffer_size : int
+            Default 1000
+        device : str
+            The device to bind the buffer to (CUDA/cpu) - default: "cpu"
+
+        Returns
+        -------
+        self
+        """
+        super().__init__(dataset, buffer_size, device)
+        self.image_dim = image_size
+        self.blur = blur
+
+    def fill(self):
+        """
+        Perform a fill. We go all the way through the dataset and into the
+        DataLoader, rendering enough to fill the buffer.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self
+        """
+        # TODO - if this is a CPU buffer, pin the memory
+
+        self.counter = 0
+        try:
+            del self.buffer[:]
+            for i in tqdm(
+                range(0, min(self.buffer_size, self.set.remaining())),
+                desc="Filling Image buffer",
+            ):
+                # Here is where we render and place into the buffer
+                datum = self.set.__next__()
+                timg = None
+                mimg = None
+
+                try:
+                    with fits.open(datum.path) as w:
+                        #hdul = w[0].data.astype('float32')
+                        hdul = w[0].data.byteswap().newbyteorder().astype('float32')
+                        timg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
+
+                        if not (
+                            timg.shape[0] == self.image_dim[0]
+                            and timg.shape[1] == self.image_dim[1]
+                            and timg.shape[2] == self.image_dim[2]
+                        ):
+                            timg = resize_image(timg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
+                        # Perform a sigma blur?
+                        if self.blur and datum.sigma > 1.0:
+                            # first build the smoothing kernel
+                            timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
+
+                        timg = torch.tensor(timg, dtype=DTYPE, device=self.device)
+
+                        assert(torch.sum(timg) > 0)
+
+                    with fits.open(datum.mask_path) as w:                      
+                        mimg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
+
+                        if not (
+                            mimg.shape[0] == self.image_dim[0]
+                            and mimg.shape[1] == self.image_dim[1]
+                            and mimg.shape[2] == self.image_dim[2]
+                        ):
+                            mimg = resize_image(mimg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
+                        # Perform a sigma blur?
+                        if self.blur and datum.sigma > 1.0:
+                            # first build the smoothing kernel
+                            mimg = gaussian_filter(mimg.cpu(), sigma=datum.sigma)
+
+                        mimg = torch.tensor(mimg, dtype=DTYPE, device=self.device)
+
+                    item = ItemMask(timg, mimg, datum.sigma)
+                    self.buffer.append(item)
                 except Exception as e:
                     import traceback, sys
                     print(e)

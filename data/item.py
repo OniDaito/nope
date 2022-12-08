@@ -81,7 +81,7 @@ class ItemImage():
         self.sigma = sigma
 
     def unpack(self):
-        return self.path
+        return (self.path, self.sigma)
 
 
 class ItemImageClass():
@@ -92,6 +92,6 @@ class ItemImageClass():
         self.sigma = sigma
 
     def unpack(self):
-        return self.path
+        return (self.path, self.class_path, self.sigma)
 
 

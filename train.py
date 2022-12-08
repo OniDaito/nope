@@ -31,7 +31,7 @@ from util.loadsave import save_checkpoint, save_model
 from data.loader import Loader
 from data.imageload import ImageLoader
 from data.sets import DataSet, SetType
-from data.buffer import Buffer, BufferImage
+from data.buffer import Buffer, BufferImage, BufferImageClass
 from data.batcher import Batcher
 from stats import stats as S
 from net.renderer import Splat
@@ -333,6 +333,11 @@ def train(
             target = ddata.data
             optimiser.zero_grad()
 
+            if args.submask:
+                mask = ddata.mask
+                mask = torch.where(mask > 0, 1 , 0)
+                target = torch.mul(target, mask)
+
             # Shape and normalise the input batch
             target_shaped = normaliser_in.normalise(
                 target.reshape(
@@ -492,7 +497,9 @@ def init(args, device):
     if args.fitspath != "":
         data_loader = ImageLoader(
             size=args.train_size + args.test_size,
-            image_path=args.fitspath
+            image_path=args.fitspath,
+            classes=args.submask,
+            class_suffix="mask"
         )
 
         set_train = DataSet(
@@ -500,13 +507,23 @@ def init(args, device):
         )
         set_test = DataSet(SetType.TEST, test_set_size, data_loader)
 
-        buffer_train = BufferImage(
-            set_train,
-            buffer_size=args.buffer_size,
-            device=device,
-            blur=True,
-            image_size=image_size,
-        )
+        if args.submask:
+            buffer_train = BufferImageClass(
+                set_train,
+                buffer_size=args.buffer_size,
+                device=device,
+                blur=True,
+                image_size=image_size,
+            )
+        else:
+            buffer_train = BufferImage(
+                set_train,
+                buffer_size=args.buffer_size,
+                device=device,
+                blur=True,
+                image_size=image_size,
+            )
+
         buffer_test = BufferImage(
             set_test, buffer_size=test_set_size, blur=True, image_size=image_size, device=device
         )
@@ -737,6 +754,13 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="Do we stretch the input data and model for it (default: False)?",
+        required=False,
+    )
+    parser.add_argument(
+        "--submask",
+        default=False,
+        action="store_true",
+        help="Ignore anything outside of the mask (default: False)?",
         required=False,
     )
     parser.add_argument(

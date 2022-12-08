@@ -12,7 +12,7 @@ supports iteration, typically a buffer.
 """
 
 import torch
-from data.buffer import ItemRendered, ItemBuffer
+from data.buffer import ItemRendered, ItemBuffer, ItemMask
 from globals import DTYPE
 
 
@@ -20,11 +20,21 @@ class Batch(object):
     ''' A little dictionary of sorts that holds the actual data we need 
     for the neural net (the images) and the associated data used to make
     these images.'''
+
+    # TODO - I think this is a bit messy, especially when converting from the 
+    # various Item types from the buffer. We might need something less complex.
+    # All the 'isinstance' stuff seems a bit naughty.
     
     def __init__(self, batch_size: int, isize, device):
         self._idx = 0
         
         self.data = torch.zeros(
+            (batch_size, 1, isize[0], isize[1], isize[2]),
+            dtype=DTYPE,
+            device=device,
+        )
+
+        self.mask = torch.zeros(
             (batch_size, 1, isize[0], isize[1], isize[2]),
             dtype=DTYPE,
             device=device,
@@ -49,6 +59,9 @@ class Batch(object):
             self.translations.append(datum.translation)
             self.sigmas.append(datum.sigma)
             self.stretches.append(datum.stretch)
+
+        if isinstance(datum, ItemMask): 
+            self.meask[self._idx][0] = datum.mask
         
         if hasattr(datum, "graph"):
             self.graph[self._idx] = torch.reshape(datum.graph, (1, 4, 4))
