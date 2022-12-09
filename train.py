@@ -143,6 +143,8 @@ def test(
             
             if args.submask:
                 mask = ddata.mask
+                print("OSUM", torch.sum(mask))
+
                 mask = torch.where(mask > 0, 1, 0)
                 print("TSUM", torch.sum(mask))
                 target_masked = torch.mul(target, mask)
