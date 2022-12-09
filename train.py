@@ -143,10 +143,7 @@ def test(
             
             if args.submask:
                 mask = ddata.mask
-                print("OSUM", torch.sum(mask))
-
                 mask = torch.where(mask > 0, 1, 0)
-                print("TSUM", torch.sum(mask))
                 target_masked = torch.mul(target, mask)
 
                 target_shaped_masked = normaliser_in.normalise(
@@ -551,6 +548,11 @@ def init(args, device):
                 blur=True,
                 image_size=image_size,
             )
+
+            buffer_test = BufferImageClass(
+                set_test, buffer_size=test_set_size, blur=True, image_size=image_size, device=device
+            )
+           
         else:
             buffer_train = BufferImage(
                 set_train,
@@ -560,9 +562,9 @@ def init(args, device):
                 image_size=image_size,
             )
 
-        buffer_test = BufferImage(
-            set_test, buffer_size=test_set_size, blur=True, image_size=image_size, device=device
-        )
+            buffer_test = BufferImage(
+                set_test, buffer_size=test_set_size, blur=True, image_size=image_size, device=device
+            )
 
     elif args.objpath != "":
         data_loader = Loader(

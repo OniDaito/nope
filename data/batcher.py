@@ -62,7 +62,6 @@ class Batch(object):
 
         if hasattr(datum, "mask"):
             self.mask[self._idx][0] = datum.mask
-            print("vsum", torch.sum(datum.mask))
         
         if hasattr(datum, "graph"):
             self.graph[self._idx] = torch.reshape(datum.graph, (1, 4, 4))
