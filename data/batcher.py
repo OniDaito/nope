@@ -61,7 +61,7 @@ class Batch(object):
             self.stretches.append(datum.stretch)
 
         if isinstance(datum, ItemMask): 
-            self.meask[self._idx][0] = datum.mask
+            self.mask[self._idx][0] = datum.mask
         
         if hasattr(datum, "graph"):
             self.graph[self._idx] = torch.reshape(datum.graph, (1, 4, 4))
