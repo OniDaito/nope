@@ -333,6 +333,7 @@ def train(
             target = ddata.data
             optimiser.zero_grad()
 
+            # If we are submasking, lets mask out the target for training.
             if args.submask:
                 mask = ddata.mask
                 mask = torch.where(mask > 0, 1 , 0)
