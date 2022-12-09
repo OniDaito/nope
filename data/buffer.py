@@ -455,7 +455,7 @@ class BufferImageClass(BaseBuffer):
 
                         assert(torch.sum(timg) > 0)
 
-                    with fits.open(datum.mask_path) as w:                      
+                    with fits.open(datum.class_path) as w:                      
                         mimg = torch.tensor(hdul, dtype=torch.float32, device=self.device)
 
                         if not (
