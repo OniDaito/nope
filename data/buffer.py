@@ -464,11 +464,8 @@ class BufferImageClass(BaseBuffer):
                             and mimg.shape[2] == self.image_dim[2]
                         ):
                             mimg = resize_image(mimg, (self.image_dim[0], self.image_dim[1], self.image_dim[2]))
-                        # Perform a sigma blur?
-                        if self.blur and datum.sigma > 1.0:
-                            # first build the smoothing kernel
-                            mimg = gaussian_filter(mimg.cpu(), sigma=datum.sigma)
-
+                       
+                        # Don't do gaussian blur on the mask.
                         mimg = torch.tensor(mimg, dtype=DTYPE, device=self.device)
 
                     item = ItemMask(timg, mimg, datum.sigma)

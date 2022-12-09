@@ -213,6 +213,7 @@ class ImageLoader(Loader):
             classes.sort()
             images.sort()
             assert(len(classes) == len(images))
+            print("Loaded images and corresponding class masks.")
 
             for i, _ in enumerate(classes):
                 file_id = os.path.basename(images[i])[:8]
