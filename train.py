@@ -77,7 +77,6 @@ def test(
     step: int,
     points_model: Model,
     sigma: float,
-    write_fits: bool
 ):
     """
     Switch to test / eval mode and do some recording to our stats
@@ -199,6 +198,8 @@ def test(
             if batch_idx == image_choice:
                 target = torch.squeeze(target_shaped[0])
                 output = torch.squeeze(output[0])
+                target_masked = None
+
                 S.save_jpg(
                     torch.sum(target, dim=0),
                     args.savedir,
@@ -209,9 +210,9 @@ def test(
                 )
 
                 if args.submask:
-                    target = torch.squeeze(target_shaped_masked[0])
+                    target_masked = torch.squeeze(target_shaped_masked[0])
                     S.save_jpg(
-                        torch.sum(target, dim=0),
+                        torch.sum(target_masked, dim=0),
                         args.savedir,
                         "in_masked_e",
                         epoch,
@@ -228,9 +229,12 @@ def test(
                     batch_idx,
                 )
 
-                if write_fits:
+                if args.write_fits:
                     S.save_fits(target,  args.savedir, "in_e", epoch, step, batch_idx)
                     S.save_fits(output,  args.savedir, "out_e", epoch, step, batch_idx)
+                    
+                    if args.submask:
+                        S.save_fits(target_masked,  args.savedir, "in_mask_e", epoch, step, batch_idx)
           
                 ps = model._final.shape[1] - 1
                 sp = nn.Softplus(threshold=12)
@@ -417,7 +421,7 @@ def train(
                 )
 
                 if args.save_stats:
-                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma, args.write_fits)
+                    test_loss = test(args, model, buffer_test, epoch, batch_idx, points_model, sigma)
                     S.save_points(points_model, args.savedir, epoch, batch_idx)
                     S.update(
                         epoch, buffer_train.set.size, args.batch_size, batch_idx
