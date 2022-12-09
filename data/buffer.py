@@ -468,6 +468,7 @@ class BufferImageClass(BaseBuffer):
                        
                         # Don't do gaussian blur on the mask.
                         mimg = torch.tensor(mimg, dtype=DTYPE, device=self.device)
+                        print("SUM", torch.sum(mimg))
 
                     item = ItemMask(timg, mimg, datum.sigma)
                     self.buffer.append(item)
