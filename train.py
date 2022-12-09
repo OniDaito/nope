@@ -140,6 +140,23 @@ def test(
         with torch.no_grad():
             # Offsets is essentially empty for the test buffer.
             target = ddata.data
+            target_shaped_masked = None
+            
+            if args.submask:
+                mask = ddata.mask
+                mask = torch.where(mask > 0, 1, 0)
+                target_masked = torch.mul(target, mask)
+
+                target_shaped_masked = normaliser_in.normalise(
+                target_masked.reshape(
+                    args.batch_size,
+                    1,
+                    args.image_depth,
+                    args.image_height,
+                    args.image_width,
+                ) #, sigma
+            )
+
             target_shaped = normaliser_in.normalise(
                 target.reshape(
                     args.batch_size,
@@ -190,6 +207,18 @@ def test(
                     step,
                     batch_idx,
                 )
+
+                if args.submask:
+                    target = torch.squeeze(target_shaped_masked[0])
+                    S.save_jpg(
+                        torch.sum(target, dim=0),
+                        args.savedir,
+                        "in_masked_e",
+                        epoch,
+                        step,
+                        batch_idx,
+                    )
+
                 S.save_jpg(
                     torch.sum(output, dim=0),
                     args.savedir,
@@ -336,7 +365,7 @@ def train(
             # If we are submasking, lets mask out the target for training.
             if args.submask:
                 mask = ddata.mask
-                mask = torch.where(mask > 0, 1 , 0)
+                mask = torch.where(mask > 0, 1, 0)
                 target = torch.mul(target, mask)
 
             # Shape and normalise the input batch
@@ -350,10 +379,9 @@ def train(
                 ) #, sigma
             )
         
-            with torch.autocast("cuda"): # TODO - do we need cpu device check option?
-                output = normaliser_out.normalise(model(target_shaped, points_model.data))
-                loss = calculate_loss(target_shaped, output)
-
+            #with torch.autocast("cuda"): # TODO - do we need cpu device check option?
+            output = normaliser_out.normalise(model(target_shaped, points_model.data))
+            loss = calculate_loss(target_shaped, output)
             loss.backward()
         
             lossy = loss.item()
