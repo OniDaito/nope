@@ -60,7 +60,7 @@ class Batch(object):
             self.sigmas.append(datum.sigma)
             self.stretches.append(datum.stretch)
 
-        if isinstance(datum, ItemMask): 
+        if hasattr(datum, "mask"):
             self.mask[self._idx][0] = datum.mask
         
         if hasattr(datum, "graph"):
