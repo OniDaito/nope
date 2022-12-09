@@ -470,7 +470,7 @@ class BufferImageClass(BaseBuffer):
                         # Perform a sigma blur?
                         if self.blur and datum.sigma > 1.0:
                             # first build the smoothing kernel
-                            timg = gaussian_filter(timg.cpu(), sigma=datum.sigma)
+                            mimg = gaussian_filter(mimg.cpu(), sigma=datum.sigma)
                        
                         # Don't do gaussian blur on the mask.
                         mimg = torch.tensor(mimg, dtype=DTYPE, device=self.device)
