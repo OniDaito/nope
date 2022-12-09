@@ -434,6 +434,8 @@ class BufferImageClass(BaseBuffer):
                 timg = None
                 mimg = None
 
+                print(datum.path, datum.class_path)
+
                 try:
                     with fits.open(datum.path) as w:
                         #hdul = w[0].data.astype('float32')
