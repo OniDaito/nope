@@ -61,6 +61,7 @@ class Batch(object):
             self.stretches.append(datum.stretch)
 
         if hasattr(datum, "mask"):
+            print("MAsjy")
             self.mask[self._idx][0] = datum.mask
         
         if hasattr(datum, "graph"):
