@@ -143,7 +143,8 @@ def test(
             
             if args.submask:
                 mask = ddata.mask
-                mask = torch.where(mask > 0, 1, 0)
+                cutoff = (1.0 / (math.sqrt(2.0 * math.pi * sigma) ** 3) * math.exp(0)) / 2.0
+                mask = torch.where(mask > cutoff, 1, 0)
                 target_masked = torch.mul(target, mask)
 
                 target_shaped_masked = normaliser_in.normalise(
@@ -369,7 +370,8 @@ def train(
             # If we are submasking, lets mask out the target for training.
             if args.submask:
                 mask = ddata.mask
-                mask = torch.where(mask > 0, 1, 0)
+                cutoff = (1.0 / (math.sqrt(2.0 * math.pi * sigma) ** 3) * math.exp(0)) / 2.0
+                mask = torch.where(mask > cutoff, 1, 0)
                 target = torch.mul(target, mask)
 
             # Shape and normalise the input batch
