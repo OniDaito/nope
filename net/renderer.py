@@ -310,6 +310,7 @@ class Splat(object):
         # of some of the points
         mask = mask.reshape(mask.shape[0], 1, 1, 1)
         mask = mask.expand(mask.shape[0], ey.shape[1], ey.shape[2], ey.shape[3])
+        sigma = torch.clamp(sigma, 1.0)
 
         model = (
             1.0
