@@ -143,7 +143,7 @@ def test(
             
             if args.submask:
                 mask = ddata.mask
-                sigma = torch.clamp(sigma, 1.0)
+                sigma = max(sigma, 1.0)
                 cutoff = (1.0 / (math.sqrt(2.0 * math.pi * sigma) ** 3) * math.exp(0)) / 2.0
                 mask = torch.where(mask > cutoff, 1, 0)
                 target_masked = torch.mul(target, mask)
@@ -371,7 +371,7 @@ def train(
             # If we are submasking, lets mask out the target for training.
             if args.submask:
                 mask = ddata.mask
-                sigma = torch.clamp(sigma, 1.0)
+                sigma = max(sigma, 1.0)
                 cutoff = (1.0 / (math.sqrt(2.0 * math.pi * sigma) ** 3) * math.exp(0)) / 2.0
                 mask = torch.where(mask > cutoff, 1, 0)
                 target = torch.mul(target, mask)
