@@ -604,17 +604,6 @@ def init(args, device):
     # track of the indices.
     points_model = Model()
 
-    if os.path.isfile(args.load):
-        path = os.path.normpath(args.load)
-        loadname = os.path.basename(path)
-        loaddir = path.replace(loadname, "")
-
-        (model, _, _, _, _, _, _) = load_checkpoint(
-            model, loaddir, loadname, device
-        )
-        model.to(device)
-        print("Loaded model", model)
-
     if len(args.startobjs) > 0:
         points_model.load_models(args.startobjs)
     else:
@@ -634,6 +623,16 @@ def init(args, device):
         max_stretch=args.max_stretch,
         predict_sigma=args.predict_sigma
     ).to(device)
+
+    if os.path.isfile(args.load):
+        path = os.path.normpath(args.load)
+        loadname = os.path.basename(path)
+        loaddir = path.replace(loadname, "")
+
+        (model, _, _, _, _, _, _) = load_checkpoint(
+            model, loaddir, loadname, device
+        )
+        print("Loaded model", model)
 
     # Save the training data to disk so we can interrogate it later
     set_test.save(args.savedir + "/test_set.pickle")
