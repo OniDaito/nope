@@ -27,7 +27,7 @@ import argparse
 import os
 import sys
 from util.points import init_points
-from util.loadsave import save_checkpoint, save_model
+from util.loadsave import load_checkpoint, save_checkpoint, save_model
 from data.loader import Loader
 from data.imageload import ImageLoader
 from data.sets import DataSet, SetType
@@ -603,6 +603,17 @@ def init(args, device):
     # Create a model of points. We create from multiple obj/ply files and keep
     # track of the indices.
     points_model = Model()
+
+    if os.path.isfile(args.load):
+        path = os.path.normpath(args.load)
+        loadname = os.path.basename(path)
+        loaddir = path.replace(loadname, "")
+
+        (model, _, _, _, _, _, _) = load_checkpoint(
+            model, loaddir, loadname, device
+        )
+        model.to(device)
+        print("Loaded model", model)
 
     if len(args.startobjs) > 0:
         points_model.load_models(args.startobjs)
