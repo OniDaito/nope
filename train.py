@@ -831,6 +831,7 @@ if __name__ == "__main__":
         "--load",
         help="A checkpoint file to load in order to continue \
                           training",
+        default=""
     )
     parser.add_argument(
         "--savename",
