@@ -20,7 +20,7 @@ from data.loader import ItemType
 from net.renderer import Splat
 from util.image import NormaliseBasic, NormaliseNull, load_fits
 from util.loadsave import load_checkpoint, load_model
-from util.math import PointsTen, TransTen3D
+from util.math import PointsTen, TransTen
 from util.plyobj import load_obj, load_ply
 
 
@@ -131,7 +131,7 @@ def make_group_mask(model_pred, points, image_size, gmasks, device):
 
     (_, rot, trans, stretch, sigma) = model_pred
     with torch.no_grad():
-        trans3d = TransTen3D(trans.x, trans.y, torch.tensor([0], dtype=torch.float32, device=device))
+        trans3d = TransTen(trans.x, trans.y, torch.tensor([0], dtype=torch.float32, device=device))
         sigma = float(sigma)
         group_masks = np.zeros((4, image_size[0], image_size[1], image_size[2]))
 
