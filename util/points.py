@@ -14,6 +14,43 @@ import random
 from util.math import Points, Point, PointsTen
 
 
+def classify_kmeans(points: Points, num_classes=4):
+    ''' Given a set of points, place each point into a class based on the
+    K-Means clustering algorithm. '''
+    from scipy.cluster.vq import kmeans2
+
+    #whitened = whiten(points.get_iterable())
+    #code_book, distortion = kmeans(whitened, num_classes)
+    code_book, labels = kmeans2(points.get_iterable(), 4, minit="++")
+
+    # Now add each point to a class based on distance
+    centroids = []
+
+    for c in range(num_classes):
+        cb = code_book[c]
+        cp = Point(cb[0], cb[1], cb[2], 1.0)
+        centroids.append(cp)
+
+    print("Centroids:\n" + str(centroids[0]) + "\n" + str(centroids[1]) + "\n" + str(centroids[2]) + "\n" + str(centroids[3]))
+
+    point_classes = []
+
+    for p in points:
+        d = 100.0
+        pclass = 0
+
+        for ic, c in enumerate(centroids):
+            dd = c.dist(p)
+
+            if dd < d:
+                d = dd
+                pclass = ic
+  
+        point_classes.append(pclass)
+
+    return point_classes
+
+
 def load_points(filename) -> Points:
     """
     Load the points from a text file.
