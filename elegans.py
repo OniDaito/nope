@@ -36,6 +36,7 @@ from tqdm import tqdm
 from data.imageload import ImageLoader
 from data.sets import DataSet
 from util.image import load_fits, save_fits
+from util.plyobj import load_obj, load_ply
 from util.points import classify_kmeans
 import numpy as np
 from elegans.result import Result
@@ -252,6 +253,13 @@ if __name__ == "__main__":
 
     # Load all the base data
     model, points, points_tensor, device, normaliser = load_saved_model(args, args.depth, args.height, args.width, device)
+    
+    if os.path.exists(args.points):
+        if "obj" in args.points:
+            points = load_obj(objpath=args.points)
+        elif "ply" in args.points:
+            points = load_ply(args.points)
+    
     loader = ImageLoader(size=args.loader_size, image_path=args.dataset, presigma=False, sigma=args.sigma)
     set_test = DataSet(None, 0, loader, None)
     set_test.load(args.load + "/test_set.pickle")
