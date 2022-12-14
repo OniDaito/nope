@@ -18,7 +18,6 @@ import h5py
 from tqdm import tqdm
 from data.loader import ItemType
 from net.renderer import Splat
-from net.renderer3d import Splat as Splat3D
 from util.image import NormaliseBasic, NormaliseNull, load_fits
 from util.loadsave import load_checkpoint, load_model
 from util.math import PointsTen, TransTen3D
@@ -128,7 +127,7 @@ def load_predictions(filename):
 def make_group_mask(model_pred, points, image_size, gmasks, device):
     ''' Given a model prediction, render to 4 3D volumes we can then use
     as the mask. Each volume is one group on it's own.'''
-    splat3d = Splat3D(size=image_size,  device=device)
+    splat = Splat(size=image_size,  device=device)
 
     (_, rot, trans, stretch, sigma) = model_pred
     with torch.no_grad():
@@ -138,7 +137,7 @@ def make_group_mask(model_pred, points, image_size, gmasks, device):
 
         for gid in range(4):
             gmask = gmasks[gid]
-            res3d = splat3d.render_rot_mat(points, rot, trans3d, stretch, gmask, sigma)
+            res3d = splat.render_rot_mat(points, rot, trans3d, stretch, gmask, sigma)
             res3d = torch.unsqueeze(res3d, axis=0)
             res3d = torch.unsqueeze(res3d, axis=0)
 
