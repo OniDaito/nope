@@ -339,7 +339,6 @@ if __name__ == "__main__":
             save_predictions("elegans/" + fname + "_predictions.pickle", preds)
 
         if args.three:
-            image_size = (51, 200, 200)
             base_points = points.get_points()
             groups = classify_kmeans(base_points)
             gmasks = groups_to_masks(groups, points)
