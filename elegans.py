@@ -251,7 +251,7 @@ if __name__ == "__main__":
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
     # Load all the base data
-    model, points, points_tensor, device, normaliser = load_saved_model(args, args.height, args.width, device)
+    model, points, points_tensor, device, normaliser = load_saved_model(args, args.depth, args.height, args.width, device)
     loader = ImageLoader(max_size=args.loader_size, image_path=args.dataset, presigma=False, sigma=args.sigma, file_filter="layered")
     set_test = DataSet(None, 0, loader, None)
     set_test.load(args.load + "/test_set.pickle")

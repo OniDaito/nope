@@ -57,7 +57,7 @@ def _f1(og_source: np.ndarray, og_3d_mask: np.ndarray, new_3d_all_mask: np.ndarr
     return (jacc, og_asi_score, og_asj_score)
 
 
-def load_saved_model(args, image_height, image_width, device):
+def load_saved_model(args, image_depth, image_height, image_width, device):
     if args.load and os.path.isfile(args.load + "/" + args.checkpoint_name):
         model = load_model(args.load + "/model.tar")
         (model, points_tensor, _, _, _, _, prev_args) = load_checkpoint(
@@ -67,7 +67,7 @@ def load_saved_model(args, image_height, image_width, device):
         model.eval()
     
         # Create a splat with the correct image dimensions
-        splat = Splat(size=(image_height, image_width), device=device)
+        splat = Splat(size=(image_depth, image_height, image_width), device=device)
         model.set_splat(splat)
         normaliser = NormaliseNull()
 
