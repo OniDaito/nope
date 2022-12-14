@@ -25,7 +25,7 @@ class ImageLoader(Loader):
     """A class that looks for images, saving the filepaths ready for
     use with the dataset class."""
 
-    def __init__(self, size=1000, image_path=".", presigma=False, sigma=2.0, classes=False, class_suffix="", image_size=(200, 200)):
+    def __init__(self, size=1000, image_path=".", presigma=False, sigma=2.0, classes=False, class_suffix="", image_size=(51, 200, 200)):
         """
         Create our ImageLoader.
 

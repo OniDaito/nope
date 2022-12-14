@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     # Load all the base data
     model, points, points_tensor, device, normaliser = load_saved_model(args, args.depth, args.height, args.width, device)
-    loader = ImageLoader(size=args.loader_size, image_path=args.dataset, presigma=False, sigma=args.sigma, file_filter="layered")
+    loader = ImageLoader(size=args.loader_size, image_path=args.dataset, presigma=False, sigma=args.sigma)
     set_test = DataSet(None, 0, loader, None)
     set_test.load(args.load + "/test_set.pickle")
     num_points = points.data.shape[0]
