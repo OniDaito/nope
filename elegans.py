@@ -45,7 +45,7 @@ from elegans.funcs import _f0, _f1, groups_to_masks, load_details, load_og, load
 
 
 def resize_mask(img : torch.Tensor, size : tuple):
-    new_img = torch.zeros(size, dtype=torch.float32, device=img.device)
+    new_img = torch.zeros(size, dtype=torch.float32)
     og_size = img.shape
     zd = og_size[0] / size[0]
     yd = og_size[1] / size[1]
