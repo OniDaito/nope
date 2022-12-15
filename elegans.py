@@ -45,7 +45,7 @@ from elegans.funcs import _f0, _f1, groups_to_masks, load_details, load_og, load
 
 
 def resize_mask(img : torch.Tensor, size : tuple):
-    new_img = torch.zeros(size, dtype=torch.float32)
+    new_img = np.zeros(size, dtype=np.float32)
     og_size = img.shape
     zd = og_size[0] / size[0]
     yd = og_size[1] / size[1]
@@ -101,7 +101,7 @@ def process_single_3d(item, model_pred, detail, og_3d_mask, og_source, group_mas
         # Resize if needed 
         if new_3d_mask.shape[0] != og_source.shape[0] or new_3d_mask.shape[1] != og_source.shape[1] \
             or new_3d_mask.shape[2] != og_source.shape[2]:
-            resize_mask(new_3d_mask, og_source.shape)
+            new_3d_mask = resize_mask(new_3d_mask, og_source.shape)
 
         new_3d_mask, new_score = _f0(new_3d_mask, og_source, result.thresh3d)
         new_3d_all_mask += new_3d_mask
