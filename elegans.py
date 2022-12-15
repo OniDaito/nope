@@ -44,59 +44,43 @@ from elegans.result import Result
 from elegans.funcs import _f0, _f1, groups_to_masks, load_details, load_og, load_predictions, load_saved_model, make_group_mask, make_predictions, read_dataset_images, save_details, save_og, save_predictions
 
 
-def process_single_2d(item, model_pred, detail, og_2d_mask, og_source, thresh, num_points):
-    '''Process a single data item.'''
-    result = Result()
-    
-    #try:
-    # Crop the base mask down. Make sure the depth has not been changed
-    if int(detail['roid']) != 51:
-        print("Error with no / incorrect ROI for:", item.path)
-        return
+def resize_mask(img : torch.Tensor, size : tuple):
+    new_img = torch.zeros(size, dtype=torch.float32, device=img.device)
+    og_size = img.shape
+    zd = og_size[0] / size[0]
+    yd = og_size[1] / size[1]
+    xd = og_size[2] / size[2]
 
-    y = int(float(detail['roiy']))
-    x = int(float(detail['roix']))
-    w = int(float(detail['roiwh']))
-    og_source = og_source[:, y:y+w, x:x+w]
-    (pred, rot, trans, stretch, sigma) = model_pred
-    im = torch.squeeze(pred)
+    for z in range(size[0]):
+        sz = int(z * zd)
 
-    # With basic normalisation and 200 points, all values are halved so multiply by two
-    # We want to reject anything below the FWHM of a single Gaussian blob
-    if thresh <= 0:
-        fwhm = (1.0 / (2 * math.pow(sigma, 2) * math.pi)) * math.exp(0) / 2
-        result.thresh2d = (normaliser.factor / num_points) * fwhm
-    else:
-        result.thresh2d = thresh
+        for y in range(size[1]):
+            sy = int(y * yd)
 
-    # Work out the 2D Scores
-    new_2d_mask = im.numpy()
-    new_2d_mask = np.where(new_2d_mask > result.thresh2d, 1, 0)
-    og_2d_mask = np.where(og_2d_mask != 0, 1, 0)
+            for x in range(size[2]):
+                sx = int(x * xd)
+                new_img[z][y][x] = img[sz][sy][sx]
 
-    jacc = np.sum(new_2d_mask * og_2d_mask) / (np.sum(new_2d_mask) + np.sum(og_2d_mask) - np.sum(new_2d_mask * og_2d_mask))
-    result.jacc2d = jacc
-    
-    print(item.path, "Thresh", result.thresh2d, "2D Jacc", result.jacc2d)
-
-    #except Exception as e:
-    #    print("Exception in process_single", e)
-    
-    return result
+    return new_img
 
 
-def process_single_3d(item, model_pred, detail, og_3d_mask, og_source, group_mask, thresh, num_points):
+def process_single_3d(item, model_pred, detail, og_3d_mask, og_source, group_mask, thresh, num_points, acrop, image_size):
     result = Result()
     # Render out to 3D for mask check
     # We are using the normaliserbasic3d by default
 
-    x = int(float(detail['roix']))
-    y = int(float(detail['roiy']))
     w = int(float(detail['roiwh']))
+    a = acrop
+    d = int((w - a)/ 2)
+
+    x = int(float(detail['roix'])) + d
+    y = int(float(detail['roiy'])) + d
+
     (pred, rot, trans, stretch, sigma) = model_pred
-    og_source = og_source[:, y:y+w, x:x+w]
-    og_3d_mask = og_3d_mask[:, y:y+w, x:x+w]
+    og_source = og_source[:, y:y+a, x:x+a]
+    og_3d_mask = og_3d_mask[:, y:y+a, x:x+a]
     og_3d_mask = np.flip(og_3d_mask, axis=1)  # Flip after cropping
+
 
     # Now work on the 3D scores
     if thresh <= 0:
@@ -113,6 +97,12 @@ def process_single_3d(item, model_pred, detail, og_3d_mask, og_source, group_mas
         # differing numbers of points. x / total_intensity * factor
         factor = 100.0 / num_points
         new_3d_mask *= factor
+        
+        # Resize if needed 
+        if new_3d_mask.shape[0] != og_source.shape[0] or new_3d_mask.shape[1] != og_source.shape[1] \
+            or new_3d_mask.shape[2] != og_source.shape[2]:
+            resize_mask(new_3d_mask, og_source.shape)
+
         new_3d_mask, new_score = _f0(new_3d_mask, og_source, result.thresh3d)
         new_3d_all_mask += new_3d_mask
         result.new_scores.append(new_score)
@@ -130,28 +120,7 @@ def process_single_3d(item, model_pred, detail, og_3d_mask, og_source, group_mas
     return result
 
 
-def process_2d_all(args, preds, set_test, details, og_2d_masks, og_sources, num_points):
-    factor = (args.max_thresh - args.min_thresh) / args.num_samples
-    results = []
-    thresher = [args.min_thresh + float(i * factor) for i in range(args.num_samples)]
-
-    for thresh in thresher:
-        tresults = []
-    
-        for vidx in range(len(set_test)):
-            detail = details[vidx]
-            item = set_test.__getitem__(vidx)
-            pred = preds[vidx]
-            og_2d_mask = og_2d_masks[vidx]
-            og_source = og_sources[vidx]
-            tresults.append(process_single_2d(item, pred, detail, og_2d_mask, og_source, thresh, num_points))
-        
-        results.append((thresh, tresults))
-    
-    return results
-
-
-def process_3d_all(args, preds, set_test, details, og_3d_masks, og_sources, group_masks, num_points):
+def process_3d_all(args, preds, set_test, details, og_3d_masks, og_sources, group_masks, num_points, image_size):
     factor = (args.max_thresh - args.min_thresh) / float(args.num_samples)
     results = []
     thresher = [args.min_thresh + float(i) * factor for i in range(args.num_samples)]
@@ -168,7 +137,7 @@ def process_3d_all(args, preds, set_test, details, og_3d_masks, og_sources, grou
             og_source = og_sources[vidx]
             group_mask = group_masks[vidx]
             group_mask = np.flip(group_mask, axis=2)
-            tresults.append(process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, thresh, num_points))
+            tresults.append(process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, thresh, num_points, args.acrop, image_size))
         
         results.append((thresh, tresults))
 
@@ -190,6 +159,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--seed", type=int, default=1, help="random seed (default: 1)"
+    )
+    # TODO - remove this when we fix the wiggle CSV crop stuff
+    parser.add_argument(
+        "--acrop", type=int, default=200, help="Actual final crop size of the dataset"
     )
     parser.add_argument(
         "--idx", type=int, default=1, help="If single, which one?"
@@ -263,7 +236,6 @@ if __name__ == "__main__":
         
         points = PointsTen(device=device).from_points(points)
 
-
     loader = ImageLoader(size=args.loader_size, image_path=args.dataset, presigma=False, sigma=args.sigma)
     set_test = DataSet(None, 0, loader, None)
     set_test.load(args.load + "/test_set.pickle")
@@ -286,55 +258,45 @@ if __name__ == "__main__":
         print("Input Image", item.path)
         input_image = load_fits(item.path)
 
-        x = int(float(detail['roix']))
-        y = int(float(detail['roiy']))
         w = int(float(detail['roiwh']))
-        cropped_source = og_source[:, y:y+w, x:x+w]
+        a = args.acrop
+        d = int((w - a)/ 2)
+
+        x = int(float(detail['roix'])) + d
+        y = int(float(detail['roiy'])) + d
+
+        cropped_source = og_source[:, y:y+a, x:x+a]
         cropped_source = np.flip(cropped_source, axis=1)
 
-        if args.three:
-            with h5py.File("elegans/" + fname + "_group_masks.h5", 'r') as hf:
-                group_masks = np.array(hf['group_masks'])
-                group_mask = group_masks[vidx]
-                og_3d_mask = og_3d_masks[vidx]
-                group_mask = np.flip(group_mask, axis=2)
-                result = process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, args.thresh3d, num_points)
-                (prediction, rot, trans, stretch, sigma) = pred
-                og_3d_mask = og_3d_mask[:, y:y+w, x:x+w]
-                og_3d_mask = np.flip(og_3d_mask, axis=1)
-                fmask = np.sum(group_mask, axis=0)
-                fmask = np.flip(fmask, axis=0)
-                nmask, score = _f0(fmask, cropped_source, args.thresh3d)
-                nmask = nmask.astype('uint8')
+        with h5py.File("elegans/" + fname + "_group_masks.h5", 'r') as hf:
+            group_masks = np.array(hf['group_masks'])
+            group_mask = group_masks[vidx]
+            og_3d_mask = og_3d_masks[vidx]
+            group_mask = np.flip(group_mask, axis=2)
+            result = process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, args.thresh3d, num_points)
+            (prediction, rot, trans, stretch, sigma) = pred
+            og_3d_mask = og_3d_mask[:, y:y+w, x:x+w]
+            og_3d_mask = np.flip(og_3d_mask, axis=1)
+            fmask = np.sum(group_mask, axis=0)
+            fmask = np.flip(fmask, axis=0)
+            nmask, score = _f0(fmask, cropped_source, args.thresh3d)
+            nmask = nmask.astype('uint8')
 
-                save_fits(fmask, "elegans/pred_3d.fits")
-                save_fits(og_3d_mask, "elegans/og_3d_mask.fits")
-                #save_fits(prediction, "elegans/prediction.fits")
-                save_fits(nmask, "elegans/pred_3d_mask.fits")
-               
-        #else:
-        save_fits(input_image, "elegans/input_image.fits")
-        save_fits(cropped_source, "elegans/og_source.fits")
-        og_2d_mask = og_2d_masks[vidx]
-        save_fits(og_2d_mask, "elegans/og_2d_mask.fits")
-        result = process_single_2d(item, pred, detail, og_2d_mask, og_source, args.thresh, num_points)
-        (prediction, rot, trans, stretch, sigma) = pred
-        save_fits(prediction, "elegans/pred_2d.fits")
-        new_2d_mask = np.where(prediction > args.thresh, 1, 0)
-        new_2d_mask = new_2d_mask.astype('uint8')
-        save_fits(new_2d_mask, "elegans/pred_2d_mask.fits")
-        print(result)
+            save_fits(fmask, "elegans/pred_3d.fits")
+            save_fits(og_3d_mask, "elegans/og_3d_mask.fits")
+            #save_fits(prediction, "elegans/prediction.fits")
+            save_fits(nmask, "elegans/pred_3d_mask.fits")
      
     else:
         removals = []  # Failures in the lookup so remove from testing
         
         if os.path.exists("elegans/" + fname + "_details.pickle") and os.path.exists("elegans/" + fname + "_sources.h5"):
-            og_sources, og_2d_masks, og_3d_masks = load_og("elegans/" + fname + "_sources.h5")
+            og_sources, og_3d_masks = load_og("elegans/" + fname + "_sources.h5")
             details, removals = load_details("elegans/" + fname + "_details.pickle")
         else:
-            details, og_sources, og_2d_masks, og_3d_masks, removals = read_dataset_images(args.dataset, set_test, args.base, args.rep)
+            details, og_sources, og_3d_masks, removals = read_dataset_images(args.dataset, set_test, args.base, args.rep)
             save_details("elegans/" + fname + "_details.pickle", details, removals)
-            save_og("elegans/" + fname + "_sources.h5", og_sources, og_2d_masks, og_3d_masks)
+            save_og("elegans/" + fname + "_sources.h5", og_sources, og_3d_masks)
 
         # Get the predictions
         preds = None
@@ -350,36 +312,29 @@ if __name__ == "__main__":
             preds = make_predictions(model, points, set_test, device)
             save_predictions("elegans/" + fname + "_predictions.pickle", preds)
 
-        if args.three:
-            base_points = points.get_points()
-            groups = classify_kmeans(base_points)
-            gmasks = groups_to_masks(groups, points)
-            
-            if not os.path.exists("elegans/" + fname + "_group_masks.h5"):
-                # Render the 3D masks, saving each one to the HDF5 file to save memory
-                with h5py.File("elegans/" + fname + "_group_masks.h5", 'w') as hf:
-                    s = len(set_test)
-                    d = image_size[0]
-                    h = image_size[1]
-                    w = image_size[2]
+        base_points = points.get_points()
+        groups = classify_kmeans(base_points)
+        gmasks = groups_to_masks(groups, points)
+        
+        if not os.path.exists("elegans/" + fname + "_group_masks.h5"):
+            # Render the 3D masks, saving each one to the HDF5 file to save memory
+            with h5py.File("elegans/" + fname + "_group_masks.h5", 'w') as hf:
+                s = len(set_test)
+                d = image_size[0]
+                h = image_size[1]
+                w = image_size[2]
 
-                    print("Creating Group Masks...")
-                    group_masks = hf.create_dataset("group_masks", (s, 4, d, h, w),
-                        maxshape=(s, 4, d, h, w),
-                        chunks=(1, 4, d, h, w))
-            
-                    for pidx, pred in enumerate(tqdm(preds)):
-                        group_masks[pidx] = make_group_mask(pred, points, image_size, gmasks, device)
+                print("Creating Group Masks...")
+                group_masks = hf.create_dataset("group_masks", (s, 4, d, h, w),
+                    maxshape=(s, 4, d, h, w),
+                    chunks=(1, 4, d, h, w))
+        
+                for pidx, pred in enumerate(tqdm(preds)):
+                    group_masks[pidx] = make_group_mask(pred, points, image_size, gmasks, device)
 
-            with h5py.File("elegans/" + fname + "_group_masks.h5", 'r') as hf:
-                group_masks = np.array(hf['group_masks'])
-                results = process_3d_all(args, preds, set_test, details, og_3d_masks, og_sources, group_masks, num_points)
-    
-            with open("elegans/" + fname + '_celegans_results_3d.pickle', 'wb') as f:
-                data = pickle.dump(results, f)
+        with h5py.File("elegans/" + fname + "_group_masks.h5", 'r') as hf:
+            group_masks = np.array(hf['group_masks'])
+            results = process_3d_all(args, preds, set_test, details, og_3d_masks, og_sources, group_masks, num_points, image_size)
 
-        else:
-            results = process_2d_all(args, preds, set_test, details, og_2d_masks, og_sources, num_points)
-            
-            with open("elegans/" + fname + '_celegans_results_2d.pickle', 'wb') as f:
-                data = pickle.dump(results, f)
+        with open("elegans/" + fname + '_celegans_results_3d.pickle', 'wb') as f:
+            data = pickle.dump(results, f)

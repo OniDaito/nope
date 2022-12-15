@@ -76,7 +76,7 @@ class ItemSimulated(LoaderItem):
 
 class ItemImage():
     def __init__(self, path,  sigma=1.0):
-        #self.type = ItemType.FITSIMAGE
+        self.type = ItemType.FITSIMAGE
         self.path = path
         self.sigma = sigma
 

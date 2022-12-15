@@ -3,7 +3,7 @@
   / _/__  ____  / __/ ___/  _/ __/ |/ / ___/ __/
  / _/ _ \/ __/ _\ \/ /___/ // _//    / /__/ _/      # noqa
 /_/ \___/_/   /___/\___/___/___/_/|_/\___/___/      # noqa
-Author : Benjamin Blundell - k1803390@kcl.ac.uk
+Author : Benjamin Blundell - benjamin.blundell@kcl.ac.uk
 
 dataset.py - a class that holds all our data for a particular run, like test or
 validation data.
@@ -17,7 +17,18 @@ import os
 from data.loader import Loader, LoaderItem
 from enum import Enum
 
-SetType = Enum("SetType", "TRAIN TEST VALID")
+
+class SetType(Enum):
+    TRAIN = 1
+    TEST = 2
+    VALID = 3
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def counter(self):
+        return self.value
 
 
 class DataSet(object):
@@ -54,9 +65,8 @@ class DataSet(object):
         # TODO - potentially remove device and take it from the loader
         self.settype = settype
         self.loader = loader
-        self.size = set_size
         # allocated contains the ids into the dataloader we have asked for
-        self.allocated = self.loader.reserve(self.size, alloc_csv)
+        self.allocated = self.loader.reserve(set_size, alloc_csv)
         self.counter = 0
         self.deterministic = deterministic
 
@@ -73,6 +83,7 @@ class DataSet(object):
         self
         """
         random.shuffle(self.allocated)
+        self.reset()
         return self
 
     def shuffle_chunk(self, size=20):
@@ -125,7 +136,7 @@ class DataSet(object):
         int
             The number of remaining items
         """
-        return self.size - self.counter
+        return len(self.allocated) - self.counter
 
     def image_size(self):
         """
@@ -177,7 +188,7 @@ class DataSet(object):
         return self
 
     def __len__(self):
-        return self.size
+        return len(self.allocated)
 
     def __iter__(self):
         return self
@@ -186,6 +197,10 @@ class DataSet(object):
         """Return an item from the loader. Should be points,
         mask, transforms."""
         return self.loader.__getitem__(self.allocated[idx])
+
+    def remove(self, idx):
+        """Remove an item from the set"""
+        del self.allocated[idx]
 
     def __next__(self):
         if self.remaining() <= 0:
@@ -216,9 +231,7 @@ class DataSet(object):
         if os.path.isfile(filename):
             with open(filename, "rb") as f:
                 self.allocated = pickle.load(f)
-                print("Loaded set from", filename)
 
-        self.size = len(self.allocated)
         return self
 
     def save(self, filename):

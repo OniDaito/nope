@@ -226,6 +226,35 @@ class Net(nn.Module):
     def get_rots(self):
         return self._final
 
+    def final_params(self, params):
+        ''' Take the final params and pass them through all the 
+        gates to get the real, final values.'''
+        ss = nn.Softsign()
+        tx = ss(params[6]) * self.max_shift
+        ty = ss(params[7]) * self.max_shift
+        tz = ss(params[8]) * self.max_shift
+        sp = nn.Softplus(threshold=12)
+        final_param = 8
+        
+        if self.predict_sigma:
+            final_param = 9
+    
+        if self.stretch:
+            final_param += 3
+        
+        final_sigma = torch.clamp(sp(params[final_param]), max=14)
+
+        if self.stretch:
+            self.sx = 1.0 + (ss(params[9]) * self.max_stretch)
+            self.sy = 1.0 + (ss(params[10]) * self.max_stretch)
+            self.sz = 1.0 + (ss(params[11]) * self.max_stretch)
+
+        param_stretch = StretchTen(self.sx, self.sy, self.sz)
+        m = mat_from_six([params[0], params[1], params[2], params[3], params[4], params[5]], device=self.device)
+        t = TransTen(tx, ty, tz)
+
+        return (m, t, param_stretch, final_sigma)
+
     # @autocast()
     def forward(self, target: torch.Tensor, points: PointsTen):
         """

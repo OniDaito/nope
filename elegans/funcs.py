@@ -39,14 +39,14 @@ def find_details(dataset, path, base, rep):
     return None
 
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def _f0(mask: np.ndarray, og_source: np.ndarray, thresh: float):
     new_3d_mask = np.where(mask > thresh, 1, 0)
     new_score = np.sum(og_source * new_3d_mask)
     return (new_3d_mask, new_score)
 
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def _f1(og_source: np.ndarray, og_3d_mask: np.ndarray, new_3d_all_mask: np.ndarray):
     og3d = np.where(og_3d_mask != 0, 1, 0)
     og_3d_asi_mask = np.where(og_3d_mask == 1, 1, 0)
@@ -132,8 +132,8 @@ def make_group_mask(model_pred, points, image_size, gmasks, device):
     (_, rot, trans, stretch, sigma) = model_pred
     with torch.no_grad():
         trans3d = TransTen(trans.x, trans.y, torch.tensor([0], dtype=torch.float32, device=device))
-        sigma = float(sigma)
         group_masks = np.zeros((4, image_size[0], image_size[1], image_size[2]))
+        sigma = torch.tensor([sigma], dtype=torch.float32, device=device)
 
         for gid in range(4):
             gmask = gmasks[gid]
@@ -141,7 +141,7 @@ def make_group_mask(model_pred, points, image_size, gmasks, device):
             res3d = torch.unsqueeze(res3d, axis=0)
             res3d = torch.unsqueeze(res3d, axis=0)
 
-            new_3d_mask = np.flip(res3d.squeeze().squeeze().numpy(), 1)
+            new_3d_mask = np.flip(res3d.squeeze().squeeze().cpu().numpy(), 1)
             group_masks[gid] = new_3d_mask
 
     return group_masks
@@ -181,26 +181,40 @@ def read_dataset_images(dataset_path, test_set, base, rep):
     print("Loading FITS images and creating sources and masks.")
     # TODO - pass in dimensions
     og_sources = []
-    og_2d_masks = []
     og_3d_masks = []
     removals = []
 
     for idx, item in enumerate(tqdm(test_set)):
         details = find_details(dataset, item.path, base, rep)
 
-        if details is not None:
-            og_sources.append(load_fits(details['fitssource'].replace(base, rep), flip=True).numpy())
-            og_2d_masks.append(load_fits(details['newmask'].replace(base, rep)).numpy())
-            og_3d_masks.append(load_fits(details['fitsmask'].replace(base, rep), flip=True).numpy())  # Flip before crop then flip back
-            rvals.append(details)
-        else:
-            print("Failure on",  item.path)
+        try:
+            if details is not None:
+                fitssource_path = details['fitssource']
+                fitssource_path = fitssource_path.replace("tiff", "fits")
+                
+                if not os.path.exists(fitssource_path):
+                    fitssource_path = fitssource_path.replace(base, rep)
+
+                fitsmask_path = details['fitsmask']
+                fitsmask_path = fitsmask_path.replace("tiff", "fits")
+
+                if not os.path.exists(fitsmask_path):
+                    fitsmask_path = fitsmask_path.replace(base, rep)
+
+                og_sources.append(load_fits(fitssource_path, flip=True).numpy())
+                og_3d_masks.append(load_fits(fitsmask_path, flip=True).numpy())  # Flip before crop then flip back
+                rvals.append(details)
+            else:
+                print("Failure on",  item.path)
+                removals.append(idx)
+        except:
+            print("Except Failure on",  item.path)
             removals.append(idx)
 
-    return (rvals, np.array(og_sources), np.array(og_2d_masks), np.array(og_3d_masks), removals)
+    return (rvals, np.array(og_sources), np.array(og_3d_masks), removals)
  
 
-def save_og(filename, og_sources, og_2d_masks, og_3d_masks):
+def save_og(filename, og_sources, og_3d_masks):
     with h5py.File(filename, 'w') as hf:
         s = og_sources.shape[0]
         d = og_sources.shape[1]
@@ -212,16 +226,6 @@ def save_og(filename, og_sources, og_2d_masks, og_3d_masks):
             chunks=(1, d, h, w))
         
         og_sources_hf[:] = og_sources
-
-        s = og_2d_masks.shape[0]
-        h = og_2d_masks.shape[1]
-        w = og_2d_masks.shape[2]
-
-        og_2d_masks_hf = hf.create_dataset("og_2d_masks", (s, h, w),
-            maxshape=(s, h, w),
-            chunks=(1, h, w))
-
-        og_2d_masks_hf[:] = og_2d_masks
 
         s = og_3d_masks.shape[0]
         d = og_3d_masks.shape[1]
@@ -238,10 +242,9 @@ def save_og(filename, og_sources, og_2d_masks, og_3d_masks):
 def load_og(filename):
     with h5py.File(filename, 'r') as hf:
         og_sources_hf = np.array(hf['og_sources'])
-        og_2d_masks_hf = np.array(hf['og_2d_masks'])
         og_3d_masks_hf = np.array(hf['og_3d_masks'])
 
-    return (og_sources_hf, og_2d_masks_hf, og_3d_masks_hf)
+    return (og_sources_hf, og_3d_masks_hf)
 
 
 def save_details(filename, details, removals):

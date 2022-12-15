@@ -271,7 +271,7 @@ class Splat(object):
             The translation of the points.
         mask : torch.Tensor
             A series of 1.0s or 0.0s to mask out certain points.
-        sigma : float
+        sigma : torch.Tensor
             The sigma value to render our image with.
 
         Returns
