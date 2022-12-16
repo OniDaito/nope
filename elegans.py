@@ -273,7 +273,7 @@ if __name__ == "__main__":
             group_mask = group_masks[vidx]
             og_3d_mask = og_3d_masks[vidx]
             group_mask = np.flip(group_mask, axis=2)
-            result = process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, args.thresh3d, num_points)
+            result = process_single_3d(item, pred, detail, og_3d_mask, og_source, group_mask, args.thresh3d, num_points, a, image_size)
             (prediction, rot, trans, stretch, sigma) = pred
             og_3d_mask = og_3d_mask[:, y:y+w, x:x+w]
             og_3d_mask = np.flip(og_3d_mask, axis=1)
