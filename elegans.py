@@ -281,9 +281,9 @@ if __name__ == "__main__":
             fmask = np.flip(fmask, axis=0)
 
             # Resize if needed 
-            if fmask.shape[0] != og_source.shape[0] or fmask.shape[1] != og_source.shape[1] \
-                or fmask.shape[2] != og_source.shape[2]:
-                fmask = resize_mask(fmask, og_source.shape)
+            if fmask.shape[0] != cropped_source.shape[0] or fmask.shape[1] != cropped_source.shape[1] \
+                or fmask.shape[2] != cropped_source.shape[2]:
+                fmask = resize_mask(fmask, cropped_source.shape)
 
             nmask, score = _f0(fmask, cropped_source, args.thresh3d)
             nmask = nmask.astype('uint8')
