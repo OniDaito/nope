@@ -248,7 +248,7 @@ if __name__ == "__main__":
     if args.single:
         # Assume we've made all the support files
         preds = load_predictions("elegans/" + fname + "_predictions.pickle")
-        og_sources, og_2d_masks, og_3d_masks = load_og("elegans/" + fname + "_sources.h5")
+        og_sources, og_3d_masks = load_og("elegans/" + fname + "_sources.h5")
         details, removals = load_details("elegans/" + fname + "_details.pickle")
         vidx = args.idx  # random.randint(0, len(preds))
         og_source = og_sources[vidx]
